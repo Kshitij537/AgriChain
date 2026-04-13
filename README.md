@@ -333,7 +333,7 @@ npm run test
 
 For questions, issues, or feature requests:
 - Open an issue on [GitHub Issues](https://github.com/Kshitij537/AgriChain/issues)
-- Contact: [Your contact information]
+- Contact: kshitijkdeshmukh@gmail.com
 
 ## 📄 License
 
