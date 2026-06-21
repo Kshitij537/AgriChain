@@ -32,6 +32,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/farms', require('./routes/farmRoutes'));
 app.use('/api/ndvi', require('./routes/ndviRoutes'));
 
 // Health check endpoint

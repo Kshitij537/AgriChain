@@ -165,16 +165,25 @@ python app.py
 
 ### Database Setup
 ```bash
-# Check database/schemas/ for table definitions
-# Load schemas into your database
-mysql < database/schemas/users.sql
-mysql < database/schemas/farms.sql
-mysql < database/schemas/ndvi.sql
-mysql < database/schemas/disease.sql
-mysql < database/schemas/spoilage.sql
+# This project uses PostgreSQL.
 
-# (Optional) Load sample data
-mysql < database/seed/sample_data.sql
+# Option A (macOS/Homebrew): run the automated setup
+./setup.sh
+
+# Option A (Windows / PowerShell, no Docker): run the automated setup
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+
+# Option B: manual setup with psql
+createdb agrichain_db
+psql agrichain_db < database/schemas/users.sql
+psql agrichain_db < database/schemas/farms.sql
+psql agrichain_db < database/schemas/ndvi.sql
+psql agrichain_db < database/schemas/ndvi_history.sql
+psql agrichain_db < database/schemas/disease.sql
+psql agrichain_db < database/schemas/spoilage.sql
+
+# (Optional) Load sample data (file is currently empty)
+psql agrichain_db < database/seed/sample_data.sql
 ```
 
 ## 📖 Detailed Documentation
@@ -191,12 +200,15 @@ Create `.env` files in each service directory:
 **Backend (.env)**
 ```
 DB_HOST=localhost
-DB_USER=agrichain_user
-DB_PASSWORD=your_password
-DB_NAME=agrichain
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=agrichain_db
 JWT_SECRET=your_jwt_secret
-ML_SERVICE_URL=http://localhost:5000
-SATELLITE_SERVICE_URL=http://localhost:5001
+
+# Satellite microservice used for NDVI (satellite-service/app.py)
+PYTHON_SERVICE_URL=http://localhost:5001
+
 PORT=3000
 ```
 

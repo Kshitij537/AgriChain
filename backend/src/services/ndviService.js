@@ -4,7 +4,7 @@ const axios = require('axios');
  * NDVI Service - Communicates with Python Earth Engine microservice
  */
 
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:5000';
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || process.env.SATELLITE_SERVICE_URL || 'http://localhost:5001';
 
 /**
  * Validate polygon coordinates
@@ -67,11 +67,13 @@ const calculateNDVI = async (coordinates) => {
     return {
       success: true,
       ndvi: result.ndvi,
+      ndviRaw: typeof result.ndviRaw === 'number' ? result.ndviRaw : (result.ndviRaw != null ? Number(result.ndviRaw) : null),
       health: result.health,
       status: result.status,
       timestamp: new Date().toISOString(),
       imageDate: result.imageDate || null,
-      cloudCoverage: result.cloudCoverage || null
+      cloudCoverage: result.cloudCoverage || null,
+      datasource: result.datasource || null
     };
 
   } catch (error) {
@@ -79,7 +81,7 @@ const calculateNDVI = async (coordinates) => {
 
     // Handle specific error cases
     if (error.code === 'ECONNREFUSED') {
-      throw new Error('Python microservice is not available. Ensure Earth Engine service is running on port 5000');
+      throw new Error(`Satellite service is not available at ${PYTHON_SERVICE_URL}. Ensure satellite-service is running and PYTHON_SERVICE_URL is correct`);
     }
 
     if (error.response) {
@@ -92,6 +94,47 @@ const calculateNDVI = async (coordinates) => {
       throw new Error('Cannot connect to Python microservice. Check service URL configuration');
     }
 
+    throw error;
+  }
+};
+
+/**
+ * Get NDVI time series using Python satellite service
+ * @param {Array} coordinates - Polygon coordinates
+ * @param {Number} days - Number of days back
+ */
+const getNDVITimeSeries = async (coordinates, days = 30) => {
+  try {
+    validateCoordinates(coordinates);
+
+    const safeDays = Math.max(1, Math.min(365, parseInt(days, 10) || 30));
+    console.log(`[NDVI Service] Fetching NDVI time series for last ${safeDays} days`);
+
+    const response = await axios.post(`${PYTHON_SERVICE_URL}/api/ndvi/timeseries`, {
+      coordinates,
+      days: safeDays,
+      timestamp: new Date().toISOString(),
+    }, {
+      timeout: 60000,
+    });
+
+    const result = response.data;
+    // Satellite service may return success=false when no imagery is available.
+    // Treat this as a valid response so callers can degrade gracefully.
+    return result;
+  } catch (error) {
+    console.error('[NDVI Service] Error fetching time series:', error.message);
+    if (error.code === 'ECONNREFUSED') {
+      throw new Error('Satellite service is not available. Ensure it is running (default port 5001)');
+    }
+    if (error.response) {
+      const errorData = error.response.data;
+      // Prefer returning structured error when available.
+      if (errorData && typeof errorData === 'object') {
+        return errorData;
+      }
+      throw new Error(`Satellite service error: ${error.response.status}`);
+    }
     throw error;
   }
 };
@@ -121,6 +164,7 @@ const getHealthClassification = (ndvi) => {
 
 module.exports = {
   calculateNDVI,
+  getNDVITimeSeries,
   validateCoordinates,
   getHealthClassification
 };

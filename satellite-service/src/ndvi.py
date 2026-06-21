@@ -266,16 +266,24 @@ def get_ndvi_time_series(coordinates, days=30):
                 'error': 'No satellite images available for time series'
             }
         
-        # Calculate NDVI for each image
-        ndvi_collection = sentinel2.map(
-            lambda image: image.normalizedDifference(['B8', 'B4'])
-                .reduceRegion(ee.Reducer.mean(), polygon, 10)
-                .set('system:time_start', image.get('system:time_start'))
-        )
-        
-        # Get properties
+        # Calculate mean NDVI per image and store it as an image property.
+        # This keeps the collection an ImageCollection so aggregate_array works.
+        def _set_ndvi_mean(image):
+            ndvi_img = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
+            ndvi_mean = ndvi_img.reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=polygon,
+                scale=10,
+                bestEffort=True,
+                maxPixels=1e9
+            ).get('ndvi')
+            return image.set('ndvi_mean', ndvi_mean)
+
+        ndvi_collection = sentinel2.map(_set_ndvi_mean)
+
+        # Get arrays of timestamps and computed NDVI values
         data = ndvi_collection.aggregate_array('system:time_start').getInfo()
-        ndvi_values = ndvi_collection.aggregate_array('nd').getInfo()
+        ndvi_values = ndvi_collection.aggregate_array('ndvi_mean').getInfo()
         
         # Format time series
         time_series = []

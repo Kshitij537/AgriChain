@@ -17,6 +17,16 @@
     @apply bg-white/10 backdrop-blur-md border border-white/10 rounded-3xl;
   }
 
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .signature-gradient {
+    background: linear-gradient(135deg, #004a31 0%, #2b5bb5 100%);
+  }
+
   .gradient-primary {
     @apply bg-gradient-to-br from-emerald-900 to-blue-700;
   }
@@ -87,4 +97,31 @@
 
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Leaflet Map Fixes */
+.leaflet-container {
+  font-family: 'Inter', sans-serif;
+  background: #fafaf5;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #fafaf5;
+  border: 1px solid #e3e3de;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(26, 28, 25, 0.1);
+}
+
+.leaflet-popup-tip {
+  background: #fafaf5;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.8) !important;
+  font-size: 11px;
+}
+
+.leaflet-control {
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(26, 28, 25, 0.1);
 }

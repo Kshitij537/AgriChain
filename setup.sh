@@ -35,6 +35,7 @@ cd "$(dirname "$0")/../database" 2>/dev/null
 psql agrichain_db < schemas/users.sql
 psql agrichain_db < schemas/farms.sql
 psql agrichain_db < schemas/ndvi.sql
+psql agrichain_db < schemas/ndvi_history.sql
 psql agrichain_db < schemas/disease.sql
 psql agrichain_db < schemas/spoilage.sql
 echo -e "${GREEN}✅ Tables created${NC}\n"

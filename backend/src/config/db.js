@@ -26,6 +26,13 @@ pool.connect((err, client, done) => {
   } else {
     console.log('✅ Connected to PostgreSQL database');
     done();
+
+    // Best-effort backward-compatible migration for new features.
+    // If the DB user lacks privileges, we log a warning and continue.
+    pool
+      .query('ALTER TABLE farms ADD COLUMN IF NOT EXISTS boundary_coordinates JSONB')
+      .then(() => console.log('✅ DB migration: farms.boundary_coordinates ready'))
+      .catch((e) => console.warn('⚠️ DB migration skipped/failed:', e.message));
   }
 });
 

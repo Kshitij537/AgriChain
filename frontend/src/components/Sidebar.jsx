@@ -11,7 +11,7 @@ const Sidebar = ({ onLogout }) => {
   // Navigation items
   const navItems = [
     { path: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { path: '/farm-boundary-setup', icon: 'potted_plant', label: 'Fields' },
+    { path: '/saved-fields', icon: 'potted_plant', label: 'Fields' },
     { path: '/disease-detection', icon: 'magnification_small', label: 'Disease AI' },
     { path: '/spoilage-risk', icon: 'warning', label: 'Spoilage Risk' },
     { path: '/market', icon: 'trending_up', label: 'Market' },

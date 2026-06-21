@@ -18,7 +18,7 @@ const HeroSection = () => {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-8 backdrop-blur-md">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="text-xs font-bold tracking-[0.2em] uppercase text-emerald-400">V3.0 Platform Now Live</span>
+          <span className="text-xs font-bold tracking-[0.2em] uppercase text-emerald-400"> Platform Now Live</span>
         </div>
 
         {/* Headline */}

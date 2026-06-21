@@ -4,6 +4,8 @@ import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import FarmSetup from './pages/FarmSetup';
 import FarmBoundarySetup from './pages/FarmBoundarySetup';
+import SavedFields from './pages/SavedFields';
+import FieldAnalytics from './pages/FieldAnalytics';
 import DiseaseDetection from './pages/DiseaseDetection';
 import SpoilageRisk from './pages/SpoilageRisk';
 import Market from './pages/Market';
@@ -21,6 +23,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/farm-setup" element={<FarmSetup />} />
         <Route path="/farm-boundary-setup" element={<FarmBoundarySetup />} />
+        <Route path="/farm-boundary-setup/:farmId" element={<FarmBoundarySetup />} />
+        <Route path="/saved-fields" element={<SavedFields />} />
+        <Route path="/field-analytics/:fieldId" element={<FieldAnalytics />} />
         <Route path="/disease-detection" element={<DiseaseDetection />} />
         <Route path="/spoilage-risk" element={<SpoilageRisk />} />
         <Route path="/market" element={<Market />} />

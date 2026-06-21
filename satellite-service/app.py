@@ -184,8 +184,9 @@ def ndvi_time_series():
         if result['success']:
             print(f"[Time Series] ✓ Retrieved {result['count']} data points")
             return jsonify(result), 200
-        else:
-            return jsonify(result), 404
+
+        # Not an endpoint error; it means no imagery/data was available.
+        return jsonify(result), 200
             
     except Exception as e:
         print(f"[Time Series] ✗ ERROR: {str(e)}")
