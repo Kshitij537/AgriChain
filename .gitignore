@@ -138,3 +138,11 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 satellite-service/service-account.json
+
+# Disease Detection Module Exclusions
+__pycache__/
+*.pyc
+ml-service/models/*.h5
+uploads/
+temp/
+
