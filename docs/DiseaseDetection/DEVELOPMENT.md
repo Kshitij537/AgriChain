@@ -21,7 +21,7 @@
 
 ## Phase 2 — Backend Foundation
 - [x] **Milestone 2.1**: Upload Infrastructure (Multer memory storage, format limiters, and error handling)
-- [ ] **Milestone 2.2**: Validation Layer
+- [x] **Milestone 2.2**: Validation Layer (Positive integer verification, parameter, body validations)
 - [ ] **Milestone 2.3**: ML Service Communication
 - [ ] **Milestone 2.4**: Disease Controller
 - [ ] **Milestone 2.5**: Disease Routes
