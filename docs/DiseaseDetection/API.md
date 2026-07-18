@@ -52,17 +52,19 @@ Retrieves chronological prediction history for a specific farm.
 ```json
 {
   "success": true,
-  "count": 1,
-  "history": [
-    {
-      "id": 14,
-      "disease": "Tomato Early Blight",
-      "confidence": 92.5,
-      "severity": "Medium",
-      "detectedDate": "2026-07-18T14:15:30.000Z",
-      "createdAt": "2026-07-18T14:15:30.000Z"
-    }
-  ]
+  "data": {
+    "count": 1,
+    "history": [
+      {
+        "id": 14,
+        "disease": "Tomato Early Blight",
+        "confidence": 92.5,
+        "severity": "Medium",
+        "detectedDate": "2026-07-18T14:15:30.000Z",
+        "createdAt": "2026-07-18T14:15:30.000Z"
+      }
+    ]
+  }
 }
 ```
 

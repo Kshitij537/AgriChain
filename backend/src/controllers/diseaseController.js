@@ -151,8 +151,10 @@ const getHistoryByFarm = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      count: history.length,
-      history: history
+      data: {
+        count: history.length,
+        history: history
+      }
     });
 
   } catch (error) {

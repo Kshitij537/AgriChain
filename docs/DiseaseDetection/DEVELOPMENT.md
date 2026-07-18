@@ -24,7 +24,7 @@
 - [x] **Milestone 2.2**: Validation Layer (Positive integer verification, parameter, body validations)
 - [x] **Milestone 2.3**: ML Service Communication (Axios client, environment configurations, and error mappings)
 - [x] **Milestone 2.4**: Disease Controller (Orchestrator logic, model/query isolations, and error status mappings)
-- [ ] **Milestone 2.5**: Disease Routes
+- [x] **Milestone 2.5**: Disease Routes (Verify endpoints, middleware order, and finalize API contract)
 - [ ] **Milestone 2.6**: Database Persistence
 - [ ] **Milestone 2.7**: API Testing
 - [ ] **Milestone 2.8**: Backend Review & Freeze
