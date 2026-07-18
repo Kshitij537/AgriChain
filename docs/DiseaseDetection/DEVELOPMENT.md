@@ -23,7 +23,7 @@
 - [x] **Milestone 2.1**: Upload Infrastructure (Multer memory storage, format limiters, and error handling)
 - [x] **Milestone 2.2**: Validation Layer (Positive integer verification, parameter, body validations)
 - [x] **Milestone 2.3**: ML Service Communication (Axios client, environment configurations, and error mappings)
-- [ ] **Milestone 2.4**: Disease Controller
+- [x] **Milestone 2.4**: Disease Controller (Orchestrator logic, model/query isolations, and error status mappings)
 - [ ] **Milestone 2.5**: Disease Routes
 - [ ] **Milestone 2.6**: Database Persistence
 - [ ] **Milestone 2.7**: API Testing
