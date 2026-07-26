@@ -1,81 +1,148 @@
 const mlService = require('../services/mlService');
-const { checkFarmOwnership } = require('../models/Farm');
-const { savePredictionPlaceholder, getHistoryByFarmPlaceholder } = require('../models/Disease');
+const FarmModel = require('../models/Farm');
+const DiseaseModel = require('../models/Disease');
 
 /**
  * Orchestrates disease detection on an uploaded crop leaf image
  */
 const detectDisease = async (req, res) => {
-  const farmId = parseInt(req.body.farmId, 10);
-  const userId = req.user.id;
+  const farmIdRaw = req.body ? req.body.farmId : null;
+  const farmId = (farmIdRaw !== undefined && farmIdRaw !== null && String(farmIdRaw).trim() !== '') ? parseInt(farmIdRaw, 10) : null;
+  const userId = req.user ? req.user.id : null;
   const file = req.file;
 
-  console.log(`[Disease Controller] Disease detection requested for farm ${farmId} by user ${userId}`);
+  const topKRaw = req.query.top_k || (req.body ? req.body.top_k : 3);
+  const topK = parseInt(topKRaw, 10) || 3;
 
-  try {
-    // Step 1: Farm Ownership Verification
-    const farm = await checkFarmOwnership(farmId, userId);
-    if (!farm) {
-      console.warn(`[Disease Controller] Access denied: User ${userId} does not own farm ${farmId}`);
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FARM_ACCESS_DENIED',
-          message: 'You do not have access to this farm.'
-        }
-      });
-    }
-    console.log(`[Disease Controller] Farm ownership verified for farm ${farmId}`);
+  console.log(`[Disease Controller] Disease detection requested. File: ${file ? file.originalname : 'none'}, farmId: ${farmId}, topK: ${topK}`);
 
-    // Step 2: Call ML Service
-    console.log(`[Disease Controller] Calling ML Service for file ${file.originalname}...`);
-    const prediction = await mlService.predictDisease(file);
-    console.log(`[Disease Controller] ML prediction received successfully: ${prediction.disease} (${prediction.confidence}%)`);
-
-    // Step 3: Prepare persistence metadata
-    const predictionData = {
-      farmId,
-      disease: prediction.disease,
-      confidence: prediction.confidence,
-      severity: prediction.severity,
-      recommendation: prediction.recommendation,
-      detectedBy: userId
-    };
-
-    // Step 4: Run placeholder database persistence
-    const record = await savePredictionPlaceholder(predictionData);
-    console.log(`[Disease Controller] Prediction prepared and placeholder saved (Record ID: ${record.id})`);
-
-    // Step 5: Send standardized response
-    console.log('[Disease Controller] Sending successful response');
-    return res.status(200).json({
-      success: true,
-      message: 'Disease detected successfully.',
-      data: {
-        prediction: {
-          disease: prediction.disease,
-          confidence: prediction.confidence,
-          severity: prediction.severity,
-          recommendation: prediction.recommendation
-        },
-        record: {
-          id: record.id,
-          farmId: record.farmId,
-          createdAt: record.createdAt
-        }
+  if (!file) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'IMAGE_REQUIRED',
+        message: 'Image file is required.'
       }
     });
+  }
+
+  try {
+    // Optional Farm Ownership Verification if farmId is provided
+    let farm = null;
+    if (farmId && userId) {
+      farm = await FarmModel.checkFarmOwnership(farmId, userId);
+      if (!farm) {
+        console.warn(`[Disease Controller] Access denied: User ${userId} does not own farm ${farmId}`);
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'FARM_ACCESS_DENIED',
+            message: 'You do not have access to this farm.'
+          }
+        });
+      }
+      console.log(`[Disease Controller] Farm ownership verified for farm ${farmId}`);
+    }
+
+    // Call ML Service to perform inference
+    const mlResult = await mlService.predictDisease(file, topK);
+    const pred = mlResult.prediction;
+
+    console.log(`[Disease Controller] Prediction received: ${pred.display_name} (Confidence: ${pred.confidence})`);
+
+    // Optional Database Persistence if farmId & farm were verified
+    let dbRecord = null;
+    if (farmId && farm) {
+      try {
+        dbRecord = await DiseaseModel.savePrediction({
+          farmId,
+          disease: pred.display_name,
+          confidence: pred.confidence,
+          severity: pred.is_healthy ? 'LOW' : 'MEDIUM',
+          description: `Crop: ${pred.crop}, Disease: ${pred.disease}`,
+          recommendation: pred.is_healthy ? 'No action required.' : 'Consult local agricultural extension advisor.'
+        });
+      } catch (dbErr) {
+        console.warn('[Disease Controller] DB persistence warning:', dbErr.message);
+      }
+    }
+
+    // Return standardized successful prediction response
+    const responseData = {
+      success: true,
+      data: {
+        prediction: {
+          class_index: pred.class_index,
+          crop: pred.crop,
+          disease: pred.disease,
+          display_name: pred.display_name,
+          is_healthy: pred.is_healthy,
+          confidence: pred.confidence
+        },
+        top_predictions: mlResult.top_predictions,
+        model_version: mlResult.model_version
+      }
+    };
+
+    if (dbRecord) {
+      responseData.data.record = {
+        id: dbRecord.id,
+        farmId: dbRecord.farmId,
+        createdAt: dbRecord.createdAt
+      };
+    }
+
+    return res.status(200).json(responseData);
 
   } catch (error) {
     console.error('[Disease Controller] Error during disease detection:', error.message);
 
-    // Map ML Service application errors to standard status codes
+    if (error.code === 'INVALID_IMAGE' || error.statusCode === 400) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_IMAGE',
+          message: error.message || 'Uploaded image is invalid or undecodable.'
+        }
+      });
+    }
+
+    if (error.code === 'FILE_TOO_LARGE' || error.statusCode === 413) {
+      return res.status(413).json({
+        success: false,
+        error: {
+          code: 'FILE_TOO_LARGE',
+          message: error.message || 'Uploaded file size exceeds maximum 10 MB limit.'
+        }
+      });
+    }
+
+    if (error.code === 'UNSUPPORTED_MEDIA_TYPE' || error.statusCode === 415) {
+      return res.status(415).json({
+        success: false,
+        error: {
+          code: 'UNSUPPORTED_MEDIA_TYPE',
+          message: error.message || 'Unsupported image format.'
+        }
+      });
+    }
+
+    if (error.code === 'INVALID_PARAM' || error.statusCode === 422) {
+      return res.status(422).json({
+        success: false,
+        error: {
+          code: 'INVALID_PARAM',
+          message: error.message || 'Invalid top_k parameter.'
+        }
+      });
+    }
+
     if (error.code === 'ML_SERVICE_UNAVAILABLE') {
       return res.status(503).json({
         success: false,
         error: {
           code: 'ML_SERVICE_UNAVAILABLE',
-          message: error.message || 'Disease detection engine is temporarily offline'
+          message: 'Disease detection engine is temporarily offline.'
         }
       });
     }
@@ -85,7 +152,7 @@ const detectDisease = async (req, res) => {
         success: false,
         error: {
           code: 'ML_SERVICE_TIMEOUT',
-          message: error.message || 'Disease detection request timed out'
+          message: 'Disease detection request timed out.'
         }
       });
     }
@@ -95,22 +162,11 @@ const detectDisease = async (req, res) => {
         success: false,
         error: {
           code: 'INVALID_ML_RESPONSE',
-          message: error.message || 'Inference computation returned an invalid response'
+          message: 'Inference computation returned an invalid response structure.'
         }
       });
     }
 
-    if (error.code === 'ML_SERVICE_ERROR') {
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: 'ML_SERVICE_ERROR',
-          message: error.message || 'Inference computation failed on the ML engine'
-        }
-      });
-    }
-
-    // Default catch-all
     return res.status(500).json({
       success: false,
       error: {
@@ -122,33 +178,47 @@ const detectDisease = async (req, res) => {
 };
 
 /**
+ * Endpoint for checking ML service health status
+ */
+const getMLHealth = async (req, res) => {
+  try {
+    const mlHealthy = await mlService.checkMLHealth();
+    return res.status(200).json({
+      success: true,
+      backend: 'healthy',
+      ml_service: mlHealthy ? 'healthy' : 'unavailable'
+    });
+  } catch (err) {
+    return res.status(200).json({
+      success: true,
+      backend: 'healthy',
+      ml_service: 'unavailable'
+    });
+  }
+};
+
+/**
  * Fetches disease prediction history for a farm owned by the authenticated user
  */
 const getHistoryByFarm = async (req, res) => {
   const farmId = parseInt(req.params.farmId, 10);
-  const userId = req.user.id;
-
-  console.log(`[Disease Controller] History fetch requested for farm ${farmId} by user ${userId}`);
+  const userId = req.user ? req.user.id : null;
 
   try {
-    // Step 1: Farm Ownership Verification
-    const farm = await checkFarmOwnership(farmId, userId);
-    if (!farm) {
-      console.warn(`[Disease Controller] Access denied: User ${userId} does not own farm ${farmId}`);
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FARM_ACCESS_DENIED',
-          message: 'You do not have access to this farm.'
-        }
-      });
+    if (userId) {
+      const farm = await FarmModel.checkFarmOwnership(farmId, userId);
+      if (!farm) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'FARM_ACCESS_DENIED',
+            message: 'You do not have access to this farm.'
+          }
+        });
+      }
     }
-    console.log(`[Disease Controller] Farm ownership verified for farm ${farmId}`);
 
-    // Step 2: Fetch prediction history from placeholder
-    const history = await getHistoryByFarmPlaceholder(farmId);
-    console.log(`[Disease Controller] Returning history containing ${history.length} records`);
-
+    const history = await DiseaseModel.getHistoryByFarm(farmId);
     return res.status(200).json({
       success: true,
       data: {
@@ -156,7 +226,6 @@ const getHistoryByFarm = async (req, res) => {
         history: history
       }
     });
-
   } catch (error) {
     console.error('[Disease Controller] Error fetching history:', error.message);
     return res.status(500).json({
@@ -171,5 +240,6 @@ const getHistoryByFarm = async (req, res) => {
 
 module.exports = {
   detectDisease,
+  getMLHealth,
   getHistoryByFarm
 };

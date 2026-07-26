@@ -1,0 +1,45 @@
+{
+  "total_images": 38050,
+  "total_classes": 12,
+  "crop_distribution": {
+    "cotton": 4212,
+    "orange": 27429,
+    "soybean": 6409
+  },
+  "class_distribution": {
+    "cotton/Alternaria_Leaf_Spot": 173,
+    "cotton/Bacterial_Blight": 1837,
+    "cotton/Healthy": 1823,
+    "cotton/Leaf_Curl_Virus": 379,
+    "orange/Black_Spot": 206,
+    "orange/Citrus_Canker": 11449,
+    "orange/Greening": 5876,
+    "orange/Healthy": 9898,
+    "soybean/Bacterial_Pustule": 110,
+    "soybean/Brown_Spot": 81,
+    "soybean/Healthy": 6043,
+    "soybean/Rust": 175
+  },
+  "image_formats": {
+    "PNG": 996,
+    "JPG": 36984,
+    "WEBP": 1,
+    "JPEG": 15,
+    "BMP": 54
+  },
+  "average_resolution": {
+    "width": 339.76,
+    "height": 333.57
+  },
+  "min_resolution": {
+    "width": 83,
+    "height": 72
+  },
+  "max_resolution": {
+    "width": 8000,
+    "height": 6000
+  },
+  "largest_class": "orange/Citrus_Canker",
+  "smallest_class": "soybean/Brown_Spot",
+  "imbalance_ratio": 141.35
+}

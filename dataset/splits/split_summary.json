@@ -1,0 +1,143 @@
+{
+  "seed": 42,
+  "target_ratios": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15
+  },
+  "total_images": 38050,
+  "splits": {
+    "train": {
+      "count": 26640,
+      "percentage": 70.01
+    },
+    "validation": {
+      "count": 5706,
+      "percentage": 15.0
+    },
+    "test": {
+      "count": 5704,
+      "percentage": 14.99
+    }
+  },
+  "per_class": {
+    "cotton/Alternaria_Leaf_Spot": {
+      "total": 173,
+      "train": 121,
+      "train_pct": 69.94,
+      "val": 26,
+      "val_pct": 15.03,
+      "test": 26,
+      "test_pct": 15.03
+    },
+    "cotton/Bacterial_Blight": {
+      "total": 1837,
+      "train": 1286,
+      "train_pct": 70.01,
+      "val": 276,
+      "val_pct": 15.02,
+      "test": 275,
+      "test_pct": 14.97
+    },
+    "cotton/Healthy": {
+      "total": 1823,
+      "train": 1277,
+      "train_pct": 70.05,
+      "val": 273,
+      "val_pct": 14.98,
+      "test": 273,
+      "test_pct": 14.98
+    },
+    "cotton/Leaf_Curl_Virus": {
+      "total": 379,
+      "train": 265,
+      "train_pct": 69.92,
+      "val": 57,
+      "val_pct": 15.04,
+      "test": 57,
+      "test_pct": 15.04
+    },
+    "orange/Black_Spot": {
+      "total": 206,
+      "train": 144,
+      "train_pct": 69.9,
+      "val": 31,
+      "val_pct": 15.05,
+      "test": 31,
+      "test_pct": 15.05
+    },
+    "orange/Citrus_Canker": {
+      "total": 11449,
+      "train": 8015,
+      "train_pct": 70.01,
+      "val": 1717,
+      "val_pct": 15.0,
+      "test": 1717,
+      "test_pct": 15.0
+    },
+    "orange/Greening": {
+      "total": 5876,
+      "train": 4114,
+      "train_pct": 70.01,
+      "val": 881,
+      "val_pct": 14.99,
+      "test": 881,
+      "test_pct": 14.99
+    },
+    "orange/Healthy": {
+      "total": 9898,
+      "train": 6929,
+      "train_pct": 70.0,
+      "val": 1485,
+      "val_pct": 15.0,
+      "test": 1484,
+      "test_pct": 14.99
+    },
+    "soybean/Bacterial_Pustule": {
+      "total": 110,
+      "train": 78,
+      "train_pct": 70.91,
+      "val": 16,
+      "val_pct": 14.55,
+      "test": 16,
+      "test_pct": 14.55
+    },
+    "soybean/Brown_Spot": {
+      "total": 81,
+      "train": 57,
+      "train_pct": 70.37,
+      "val": 12,
+      "val_pct": 14.81,
+      "test": 12,
+      "test_pct": 14.81
+    },
+    "soybean/Healthy": {
+      "total": 6043,
+      "train": 4231,
+      "train_pct": 70.01,
+      "val": 906,
+      "val_pct": 14.99,
+      "test": 906,
+      "test_pct": 14.99
+    },
+    "soybean/Rust": {
+      "total": 175,
+      "train": 123,
+      "train_pct": 70.29,
+      "val": 26,
+      "val_pct": 14.86,
+      "test": 26,
+      "test_pct": 14.86
+    }
+  },
+  "leakage_validation": {
+    "train_val_group_overlap": 0,
+    "train_test_group_overlap": 0,
+    "val_test_group_overlap": 0,
+    "duplicate_processed_paths": 0,
+    "missing_processed_paths": 0
+  },
+  "source_dataset_fingerprint": "bd22a4ae6881a5d7729a5b2cc434c88a992c9a837f20b1a703c86ebcfd8cac19",
+  "source_leakage_fingerprint": "9a00c066415794adaefffb89c19aa20d0a31ed489885759758240a3c27ab0339",
+  "split_fingerprint": "868e33b72a5644ce67f01978acce509db103b895b53ab472c0d8e883a59f3f21"
+}

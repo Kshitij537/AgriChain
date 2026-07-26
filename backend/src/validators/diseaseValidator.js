@@ -1,7 +1,6 @@
 // Disease Detection Request Validator
 // Purpose: Validates incoming request data formats before calling controllers
 
-// Shared helper for positive integer validation
 const isValidPositiveInteger = (value) => {
   if (value === undefined || value === null || String(value).trim() === '') {
     return false;
@@ -11,31 +10,22 @@ const isValidPositiveInteger = (value) => {
 };
 
 const validateDiseaseDetectionRequest = (req, res, next) => {
-  const { farmId } = req.body;
+  const { farmId } = req.body || {};
 
-  // Rule 1: farmId Required
-  if (farmId === undefined || farmId === null || String(farmId).trim() === '') {
-    return res.status(400).json({
-      success: false,
-      error: {
-        code: 'FARM_ID_REQUIRED',
-        message: 'Farm ID is required.'
-      }
-    });
+  // Rule 1: Validate farmId if provided
+  if (farmId !== undefined && farmId !== null && String(farmId).trim() !== '') {
+    if (!isValidPositiveInteger(farmId)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_FARM_ID',
+          message: 'Farm ID must be a positive integer.'
+        }
+      });
+    }
   }
 
-  // Rule 2: Valid Positive Integer
-  if (!isValidPositiveInteger(farmId)) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        code: 'INVALID_FARM_ID',
-        message: 'Farm ID must be a positive integer.'
-      }
-    });
-  }
-
-  // Rule 3: Image Exists (Defensive Check)
+  // Rule 2: Image Exists (Defensive Check)
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -52,7 +42,6 @@ const validateDiseaseDetectionRequest = (req, res, next) => {
 const validateFarmIdParam = (req, res, next) => {
   const { farmId } = req.params;
 
-  // Check presence of farmId
   if (farmId === undefined || farmId === null || String(farmId).trim() === '') {
     return res.status(400).json({
       success: false,
@@ -63,7 +52,6 @@ const validateFarmIdParam = (req, res, next) => {
     });
   }
 
-  // Validate positive integer
   if (!isValidPositiveInteger(farmId)) {
     return res.status(400).json({
       success: false,
