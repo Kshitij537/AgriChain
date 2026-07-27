@@ -1,7 +1,26 @@
 const mlService = require('../services/mlService');
 const FarmModel = require('../models/Farm');
 const DiseaseModel = require('../models/Disease');
-const { getDiseaseKnowledge, getConfidenceAssessment } = require('../constants/diseaseKnowledge');
+const { getDiseaseKnowledge, getConfidenceAssessment, DISEASE_KNOWLEDGE_BASE } = require('../constants/diseaseKnowledge');
+
+/**
+ * Finds matching class index for a disease name (e.g. "Cotton Alternaria Leaf Spot" -> 2)
+ */
+const findClassIndexByDiseaseName = (diseaseName) => {
+  if (!diseaseName || typeof diseaseName !== 'string') return null;
+  const nameLower = diseaseName.trim().toLowerCase();
+
+  for (const [key, value] of Object.entries(DISEASE_KNOWLEDGE_BASE)) {
+    const classIdx = parseInt(key, 10);
+    const displayLower = `${value.crop} ${value.disease}`.toLowerCase();
+    const diseaseLower = value.disease.toLowerCase();
+    
+    if (nameLower === displayLower || nameLower === diseaseLower || nameLower.includes(diseaseLower)) {
+      return classIdx;
+    }
+  }
+  return null;
+};
 
 /**
  * Orchestrates disease detection on an uploaded crop leaf image and enriches with agricultural advice
@@ -83,9 +102,9 @@ const detectDisease = async (req, res) => {
       };
     }
 
-    // Optional Database Persistence if farmId & farm were verified
+    // Optional Database Persistence if farmId was provided
     let dbRecord = null;
-    if (farmId && farm) {
+    if (farmId) {
       try {
         dbRecord = await DiseaseModel.savePrediction({
           farmId,
@@ -95,12 +114,13 @@ const detectDisease = async (req, res) => {
           description: detailsContainer.description,
           recommendation: detailsContainer.recommendations.join('; ')
         });
+        console.log(`[Disease Controller] Prediction record persisted to DB (Record ID: ${dbRecord.id})`);
       } catch (dbErr) {
         console.warn('[Disease Controller] DB persistence warning:', dbErr.message);
       }
     }
 
-    // Return standardized successful prediction response (Backward compatible + enriched with data.details)
+    // Return standardized successful prediction response
     const responseData = {
       success: true,
       data: {
@@ -238,6 +258,16 @@ const getHistoryByFarm = async (req, res) => {
   const farmId = parseInt(req.params.farmId, 10);
   const userId = req.user ? req.user.id : null;
 
+  if (isNaN(farmId) || farmId <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_FARM_ID',
+        message: 'Farm ID must be a positive integer.'
+      }
+    });
+  }
+
   try {
     if (userId) {
       const farm = await FarmModel.checkFarmOwnership(farmId, userId);
@@ -252,12 +282,43 @@ const getHistoryByFarm = async (req, res) => {
       }
     }
 
-    const history = await DiseaseModel.getHistoryByFarm(farmId);
+    const historyRows = await DiseaseModel.getHistoryByFarm(farmId);
+
+    // Reconstruct Phase 3.3 details for each historical record with fallback safety
+    const enrichedHistory = historyRows.map(row => {
+      let classIdx = findClassIndexByDiseaseName(row.disease);
+      let knowledge = getDiseaseKnowledge(classIdx !== null ? classIdx : 999);
+      let confAssessment = getConfidenceAssessment(row.confidence);
+
+      return {
+        id: row.id,
+        farm_id: row.farmId,
+        disease_name: row.disease,
+        severity_level: row.severity || knowledge.severity_level,
+        confidence_score: row.confidence,
+        description: row.description || knowledge.description,
+        treatment_recommendation: row.recommendation || knowledge.recommendations.join('; '),
+        detected_date: row.createdAt,
+        created_at: row.createdAt,
+        details: {
+          description: knowledge.description,
+          symptoms: knowledge.symptoms || [],
+          causes: knowledge.causes || [],
+          recommendations: knowledge.recommendations || [],
+          prevention: knowledge.prevention || [],
+          severity_level: row.severity || knowledge.severity_level,
+          advisory: knowledge.advisory,
+          confidence_assessment: confAssessment,
+          sources: knowledge.sources || []
+        }
+      };
+    });
+
     return res.status(200).json({
       success: true,
       data: {
-        count: history.length,
-        history: history
+        count: enrichedHistory.length,
+        history: enrichedHistory
       }
     });
   } catch (error) {

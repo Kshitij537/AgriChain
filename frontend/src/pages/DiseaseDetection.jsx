@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ImageUploader from '../components/disease/ImageUploader';
 import ImagePreview from '../components/disease/ImagePreview';
 import PredictionCard from '../components/disease/PredictionCard';
 import RecommendationCard from '../components/disease/RecommendationCard';
+import DiseaseHistory from '../components/disease/DiseaseHistory';
 import ErrorMessage from '../components/disease/ErrorMessage';
 import LoadingOverlay from '../components/disease/LoadingOverlay';
 import useDiseaseDetection from '../hooks/useDiseaseDetection';
+import { getUserFarms } from '../services/farmService';
 
 const DiseaseDetection = () => {
   const {
@@ -16,13 +18,50 @@ const DiseaseDetection = () => {
     loading,
     prediction,
     error,
+    selectedFarmId,
+    setSelectedFarmId,
+    history,
+    historyLoading,
+    historyError,
     selectFile,
     clearSelection,
-    detect
+    detect,
+    loadHistory
   } = useDiseaseDetection();
 
+  const [farms, setFarms] = useState([]);
+  const [farmInputId, setFarmInputId] = useState('');
+
+  // Load user farms on mount
+  useEffect(() => {
+    const fetchFarms = async () => {
+      const userFarms = await getUserFarms(1);
+      setFarms(userFarms);
+      if (userFarms.length > 0) {
+        setSelectedFarmId(userFarms[0].id);
+        setFarmInputId(String(userFarms[0].id));
+      }
+    };
+    fetchFarms();
+  }, [setSelectedFarmId]);
+
+  const handleFarmSelectChange = (e) => {
+    const val = e.target.value;
+    setFarmInputId(val);
+    setSelectedFarmId(val ? parseInt(val, 10) : null);
+  };
+
+  const handleManualFarmIdBlur = () => {
+    const parsed = parseInt(farmInputId, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      setSelectedFarmId(parsed);
+    } else {
+      setSelectedFarmId(null);
+    }
+  };
+
   const handleAnalyze = () => {
-    detect();
+    detect(selectedFarmId);
   };
 
   return (
@@ -31,83 +70,133 @@ const DiseaseDetection = () => {
 
       <main className="flex-1 py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto space-y-8">
-          {/* Header Section */}
-          <div className="text-center sm:text-left">
-            <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
-              AgriChain ML & Decision Support
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-headline tracking-tight">
-              AI Crop Disease Detection & Management
-            </h1>
-            <p className="text-slate-600 mt-2 text-base sm:text-lg max-w-2xl">
-              Upload a clear leaf image of Cotton, Soybean, or Orange crops for instant real-time AI diagnosis and evidence-based agricultural recommendations.
-            </p>
-          </div>
+          
+          {/* Header & Farm Context Selection Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-6">
+            <div>
+              <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+                AgriChain Farm Intelligence
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-headline tracking-tight">
+                Crop Disease Detection & History
+              </h1>
+              <p className="text-slate-600 mt-1 text-sm sm:text-base">
+                Real-time AI diagnosis and persistent historical tracking for your farms.
+              </p>
+            </div>
 
-          {/* Main Grid: Upload & Controls on Left, Results & Guidance on Right */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            
-            {/* Left Column: Image Selection & Controls */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-900/10 space-y-6">
-              <h2 className="text-xl font-bold text-slate-900 font-headline flex items-center gap-2">
-                <span className="material-symbols-outlined text-emerald-700">upload_file</span>
-                Crop Leaf Image Selection
-              </h2>
-
-              {!previewUrl ? (
-                <ImageUploader onFileSelect={selectFile} disabled={loading} />
-              ) : (
-                <ImagePreview
-                  file={file}
-                  previewUrl={previewUrl}
-                  onClear={clearSelection}
-                  disabled={loading}
-                />
-              )}
-
-              {/* Error Banner */}
-              {error && (
-                <ErrorMessage error={error} onRetry={file ? handleAnalyze : null} />
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={handleAnalyze}
-                  disabled={!file || loading}
-                  className="flex-1 gradient-primary text-white py-3.5 px-6 rounded-xl font-bold text-base shadow-sm hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                      <span>Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-lg">search</span>
-                      <span>Analyze Crop Leaf</span>
-                    </>
-                  )}
-                </button>
-
-                {previewUrl && (
-                  <button
-                    type="button"
-                    onClick={clearSelection}
-                    disabled={loading}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+            {/* Farm Context Selector */}
+            <div className="bg-white p-3 rounded-xl border border-emerald-900/10 shadow-sm flex items-center gap-3 shrink-0">
+              <span className="material-symbols-outlined text-emerald-700 text-xl">location_on</span>
+              <div>
+                <label htmlFor="farm-select" className="block text-xs font-bold text-slate-700">
+                  Select Active Farm
+                </label>
+                {farms.length > 0 ? (
+                  <select
+                    id="farm-select"
+                    value={farmInputId}
+                    onChange={handleFarmSelectChange}
+                    className="text-xs font-semibold text-slate-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
                   >
-                    Clear
-                  </button>
+                    <option value="">No Farm Selected (Standalone)</option>
+                    {farms.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} (ID: {f.id})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <input
+                      type="number"
+                      placeholder="Farm ID (e.g. 1)"
+                      value={farmInputId}
+                      onChange={(e) => setFarmInputId(e.target.value)}
+                      onBlur={handleManualFarmIdBlur}
+                      className="text-xs font-semibold w-24 p-1 border rounded border-slate-200"
+                    />
+                  </div>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Main Grid: Upload & Controls on Left, Results & History on Right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            
+            {/* Left Column: Image Selection, Upload & Controls */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-900/10 space-y-6">
+                <h2 className="text-xl font-bold text-slate-900 font-headline flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-700">upload_file</span>
+                  Crop Leaf Image Selection
+                </h2>
+
+                {!previewUrl ? (
+                  <ImageUploader onFileSelect={selectFile} disabled={loading} />
+                ) : (
+                  <ImagePreview
+                    file={file}
+                    previewUrl={previewUrl}
+                    onClear={clearSelection}
+                    disabled={loading}
+                  />
+                )}
+
+                {/* Error Banner */}
+                {error && (
+                  <ErrorMessage error={error} onRetry={file ? handleAnalyze : null} />
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={handleAnalyze}
+                    disabled={!file || loading}
+                    className="flex-1 gradient-primary text-white py-3.5 px-6 rounded-xl font-bold text-base shadow-sm hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span>Analyzing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-lg">search</span>
+                        <span>Analyze Crop Leaf</span>
+                      </>
+                    )}
+                  </button>
+
+                  {previewUrl && (
+                    <button
+                      type="button"
+                      onClick={clearSelection}
+                      disabled={loading}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Disease Detection History Component */}
+              <DiseaseHistory
+                history={history}
+                loading={historyLoading}
+                error={historyError}
+                onRetry={() => selectedFarmId && loadHistory(selectedFarmId)}
+                selectedFarmId={selectedFarmId}
+              />
             </div>
 
             {/* Right Column: Prediction Results & Enriched Recommendations */}
             <div className="space-y-6">
               {loading ? (
-                <LoadingOverlay message="Analyzing crop leaf image and fetching recommendations..." />
+                <LoadingOverlay message="Analyzing crop leaf image and logging detection record..." />
               ) : prediction ? (
                 <>
                   <PredictionCard predictionData={prediction} />
@@ -125,7 +214,7 @@ const DiseaseDetection = () => {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">Awaiting Image Upload</h3>
                   <p className="text-slate-500 text-sm max-w-md mx-auto">
-                    Select or drag-and-drop a crop leaf image on the left and click "Analyze Crop Leaf" to view disease prediction and actionable agronomic guidance.
+                    Select or drag-and-drop a crop leaf image on the left and click "Analyze Crop Leaf" to view disease prediction and record detection history.
                   </p>
                   <div className="pt-4 border-t border-slate-100 flex justify-center gap-6 text-xs text-slate-500 font-medium">
                     <span>🌱 Cotton</span>

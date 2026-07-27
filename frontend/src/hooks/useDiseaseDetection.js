@@ -10,7 +10,12 @@ const useDiseaseDetection = () => {
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState(null);
   const [error, setError] = useState(null);
+
+  // Farm Context & History States
+  const [selectedFarmId, setSelectedFarmId] = useState(null);
   const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
 
   // Revoke object URL on unmount or replace
   useEffect(() => {
@@ -20,6 +25,43 @@ const useDiseaseDetection = () => {
       }
     };
   }, [previewUrl]);
+
+  /**
+   * Loads prediction history for a farm
+   * @param {number|string} farmId 
+   */
+  const loadHistory = useCallback(async (farmId) => {
+    if (!farmId) {
+      setHistory([]);
+      setHistoryError(null);
+      return;
+    }
+
+    setHistoryLoading(true);
+    setHistoryError(null);
+
+    try {
+      const records = await getHistoryByFarm(farmId);
+      setHistory(records);
+    } catch (err) {
+      console.warn('[useDiseaseDetection] History load error:', err.message);
+      setHistoryError({
+        code: 'HISTORY_LOAD_ERROR',
+        message: 'Failed to load detection history for this farm. Click to retry.'
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  // Automatically load history when selectedFarmId changes
+  useEffect(() => {
+    if (selectedFarmId) {
+      loadHistory(selectedFarmId);
+    } else {
+      setHistory([]);
+    }
+  }, [selectedFarmId, loadHistory]);
 
   /**
    * Handles file selection with client-side validation
@@ -32,7 +74,6 @@ const useDiseaseDetection = () => {
     setPrediction(null);
     setError(null);
 
-    // Client-side validation: MIME type
     if (!ALLOWED_MIME_TYPES.includes(selectedFile.type.toLowerCase())) {
       setError({
         code: 'INVALID_FILE_TYPE',
@@ -41,7 +82,6 @@ const useDiseaseDetection = () => {
       return;
     }
 
-    // Client-side validation: Max File Size
     if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
       setError({
         code: 'FILE_TOO_LARGE',
@@ -50,12 +90,10 @@ const useDiseaseDetection = () => {
       return;
     }
 
-    // Revoke previous URL if exists
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
 
-    // Create object URL for preview
     const objectUrl = URL.createObjectURL(selectedFile);
     setFile(selectedFile);
     setPreviewUrl(objectUrl);
@@ -76,17 +114,24 @@ const useDiseaseDetection = () => {
 
   /**
    * Triggers disease prediction for the selected image
-   * @param {number|null} farmId 
+   * @param {number|null} farmIdOverride 
    */
-  const detect = useCallback(async (farmId = null) => {
+  const detect = useCallback(async (farmIdOverride = null) => {
     if (!file || loading) return;
+
+    const activeFarmId = farmIdOverride || selectedFarmId;
 
     setLoading(true);
     setError(null);
 
     try {
-      const data = await detectDisease(file, farmId);
+      const data = await detectDisease(file, activeFarmId);
       setPrediction(data);
+
+      // Refresh history if detection was persisted with a farmId
+      if (activeFarmId && data.record) {
+        loadHistory(activeFarmId);
+      }
     } catch (err) {
       console.error('[useDiseaseDetection] Error:', err.message);
       
@@ -94,6 +139,7 @@ const useDiseaseDetection = () => {
       if (err.status === 400) userFriendlyMessage = 'Selected image is invalid or undecodable.';
       if (err.status === 413) userFriendlyMessage = 'Image size exceeds maximum 10 MB limit.';
       if (err.status === 415) userFriendlyMessage = 'Unsupported image file type.';
+      if (err.status === 403) userFriendlyMessage = 'You do not have access to record detections for this farm.';
       if (err.status === 503) userFriendlyMessage = 'Disease detection engine is temporarily offline. Please try again shortly.';
       if (err.status === 504) userFriendlyMessage = 'Disease detection request timed out. Please try again.';
 
@@ -105,21 +151,7 @@ const useDiseaseDetection = () => {
     } finally {
       setLoading(false);
     }
-  }, [file, loading]);
-
-  /**
-   * Loads prediction history for a farm
-   * @param {number} farmId 
-   */
-  const loadHistory = useCallback(async (farmId) => {
-    if (!farmId) return;
-    try {
-      const records = await getHistoryByFarm(farmId);
-      setHistory(records);
-    } catch (err) {
-      console.warn('[useDiseaseDetection] History load error:', err.message);
-    }
-  }, []);
+  }, [file, loading, selectedFarmId, loadHistory]);
 
   return {
     file,
@@ -127,7 +159,11 @@ const useDiseaseDetection = () => {
     loading,
     prediction,
     error,
+    selectedFarmId,
+    setSelectedFarmId,
     history,
+    historyLoading,
+    historyError,
     selectFile,
     clearSelection,
     detect,
