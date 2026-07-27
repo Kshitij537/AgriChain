@@ -68,36 +68,40 @@ const DiseaseDetection = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <Navbar />
 
-      <main className="flex-1 py-10 px-4 sm:px-6 lg:px-8">
+      {/* Main Container - pt-32 ensures content starts cleanly below the fixed floating Navbar */}
+      <main className="flex-1 pt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto space-y-8">
           
           {/* Header & Farm Context Selection Bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-slate-200 pb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-200/80 pb-6">
             <div>
-              <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-100/90 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                 AgriChain Farm Intelligence
               </span>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-headline tracking-tight">
                 Crop Disease Detection & History
               </h1>
-              <p className="text-slate-600 mt-1 text-sm sm:text-base">
+              <p className="text-slate-600 mt-1.5 text-sm sm:text-base max-w-xl">
                 Real-time AI diagnosis and persistent historical tracking for your farms.
               </p>
             </div>
 
-            {/* Farm Context Selector */}
-            <div className="bg-white p-3 rounded-xl border border-emerald-900/10 shadow-sm flex items-center gap-3 shrink-0">
-              <span className="material-symbols-outlined text-emerald-700 text-xl">location_on</span>
-              <div>
-                <label htmlFor="farm-select" className="block text-xs font-bold text-slate-700">
-                  Select Active Farm
+            {/* Farm Context Selector Card */}
+            <div className="bg-white p-3.5 px-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 shrink-0 self-stretch md:self-auto">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                <span className="material-symbols-outlined text-xl">location_on</span>
+              </div>
+              <div className="flex-1">
+                <label htmlFor="farm-select" className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Active Farm Context
                 </label>
                 {farms.length > 0 ? (
                   <select
                     id="farm-select"
                     value={farmInputId}
                     onChange={handleFarmSelectChange}
-                    className="text-xs font-semibold text-slate-900 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
+                    className="text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer w-full"
                   >
                     <option value="">No Farm Selected (Standalone)</option>
                     {farms.map((f) => (
@@ -107,15 +111,16 @@ const DiseaseDetection = () => {
                     ))}
                   </select>
                 ) : (
-                  <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      placeholder="Farm ID (e.g. 1)"
+                      placeholder="Enter Farm ID"
                       value={farmInputId}
                       onChange={(e) => setFarmInputId(e.target.value)}
                       onBlur={handleManualFarmIdBlur}
-                      className="text-xs font-semibold w-24 p-1 border rounded border-slate-200"
+                      className="text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 w-32 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                     />
+                    <span className="text-[11px] text-slate-400 font-medium">e.g. 1</span>
                   </div>
                 )}
               </div>
@@ -125,9 +130,9 @@ const DiseaseDetection = () => {
           {/* Main Grid: Upload & Controls on Left, Results & History on Right */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             
-            {/* Left Column: Image Selection, Upload & Controls */}
+            {/* Left Column: Image Selection, Upload & History */}
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-900/10 space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
                 <h2 className="text-xl font-bold text-slate-900 font-headline flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-700">upload_file</span>
                   Crop Leaf Image Selection
@@ -150,12 +155,12 @@ const DiseaseDetection = () => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-4">
+                <div className="flex gap-4 pt-1">
                   <button
                     type="button"
                     onClick={handleAnalyze}
                     disabled={!file || loading}
-                    className="flex-1 gradient-primary text-white py-3.5 px-6 rounded-xl font-bold text-base shadow-sm hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 bg-gradient-to-r from-emerald-800 to-emerald-950 text-white py-3.5 px-6 rounded-xl font-bold text-base shadow-sm hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
@@ -208,12 +213,12 @@ const DiseaseDetection = () => {
                   )}
                 </>
               ) : (
-                <div className="bg-white rounded-2xl p-10 shadow-sm border border-emerald-900/10 text-center space-y-4">
-                  <div className="w-16 h-16 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                <div className="bg-white rounded-2xl p-10 shadow-sm border border-slate-200 text-center space-y-4">
+                  <div className="w-16 h-16 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
                     <span className="material-symbols-outlined text-3xl">psychology</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Awaiting Image Upload</h3>
-                  <p className="text-slate-500 text-sm max-w-md mx-auto">
+                  <h3 className="text-lg font-bold text-slate-900 font-headline">Awaiting Image Upload</h3>
+                  <p className="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
                     Select or drag-and-drop a crop leaf image on the left and click "Analyze Crop Leaf" to view disease prediction and record detection history.
                   </p>
                   <div className="pt-4 border-t border-slate-100 flex justify-center gap-6 text-xs text-slate-500 font-medium">

@@ -24,7 +24,7 @@ const DiseaseHistoryItem = ({ item }) => {
       {/* Card Header */}
       <div className="flex flex-wrap justify-between items-start gap-2">
         <div>
-          <h4 className="font-bold text-slate-900 text-base flex items-center gap-2">
+          <h4 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
             <span>{disease_name}</span>
           </h4>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -68,7 +68,7 @@ const DiseaseHistoryItem = ({ item }) => {
               {details.description && (
                 <div>
                   <p className="font-bold text-slate-900 mb-0.5">Overview:</p>
-                  <p>{details.description}</p>
+                  <p className="leading-relaxed">{details.description}</p>
                 </div>
               )}
 
@@ -110,19 +110,22 @@ const DiseaseHistoryItem = ({ item }) => {
 const DiseaseHistory = ({ history, loading, error, onRetry, selectedFarmId }) => {
   if (!selectedFarmId) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-900/10 text-center text-slate-500 text-sm">
-        <span className="material-symbols-outlined text-3xl text-slate-400 block mb-2">location_on</span>
-        Select a farm above to view or log disease detection history.
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 text-center text-slate-500 text-sm space-y-2">
+        <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+          <span className="material-symbols-outlined text-xl">location_on</span>
+        </div>
+        <p className="font-semibold text-slate-700">No Active Farm Selected</p>
+        <p className="text-xs text-slate-400 max-w-xs mx-auto">Select a farm in the top header selector to view or record disease detection history.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-900/10 space-y-4">
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
       <div className="flex justify-between items-center pb-3 border-b border-slate-100">
         <h3 className="text-lg font-bold text-slate-900 font-headline flex items-center gap-2">
           <span className="material-symbols-outlined text-emerald-700">history</span>
-          Farm Disease Detection History
+          Farm Detection History
         </h3>
         {history && history.length > 0 && (
           <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full">
@@ -159,8 +162,8 @@ const DiseaseHistory = ({ history, loading, error, onRetry, selectedFarmId }) =>
       {!loading && !error && (!history || history.length === 0) && (
         <div className="py-8 text-center space-y-2">
           <span className="material-symbols-outlined text-4xl text-slate-300 block">inventory_2</span>
-          <p className="text-sm font-medium text-slate-600">No disease detections recorded for this farm yet.</p>
-          <p className="text-xs text-slate-400">Upload a leaf image above with this farm selected to start recording detections.</p>
+          <p className="text-sm font-bold text-slate-700">No disease detections recorded for this farm yet.</p>
+          <p className="text-xs text-slate-400 max-w-xs mx-auto">Upload a leaf image above with this farm selected to start recording detections.</p>
         </div>
       )}
 
