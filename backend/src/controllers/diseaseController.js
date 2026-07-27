@@ -1,9 +1,10 @@
 const mlService = require('../services/mlService');
 const FarmModel = require('../models/Farm');
 const DiseaseModel = require('../models/Disease');
+const { getDiseaseKnowledge, getConfidenceAssessment } = require('../constants/diseaseKnowledge');
 
 /**
- * Orchestrates disease detection on an uploaded crop leaf image
+ * Orchestrates disease detection on an uploaded crop leaf image and enriches with agricultural advice
  */
 const detectDisease = async (req, res) => {
   const farmIdRaw = req.body ? req.body.farmId : null;
@@ -48,7 +49,39 @@ const detectDisease = async (req, res) => {
     const mlResult = await mlService.predictDisease(file, topK);
     const pred = mlResult.prediction;
 
-    console.log(`[Disease Controller] Prediction received: ${pred.display_name} (Confidence: ${pred.confidence})`);
+    console.log(`[Disease Controller] Prediction received: ${pred.display_name} (Class Index: ${pred.class_index}, Confidence: ${pred.confidence})`);
+
+    // Safely lookup knowledge base & confidence assessment with fallback guarantee
+    let detailsContainer = null;
+    try {
+      const knowledge = getDiseaseKnowledge(pred.class_index);
+      const confAssessment = getConfidenceAssessment(pred.confidence);
+
+      detailsContainer = {
+        description: knowledge.description,
+        symptoms: knowledge.symptoms || [],
+        causes: knowledge.causes || [],
+        recommendations: knowledge.recommendations || [],
+        prevention: knowledge.prevention || [],
+        severity_level: knowledge.severity_level || (pred.is_healthy ? 'Healthy' : 'Moderate Advisory'),
+        advisory: knowledge.advisory,
+        confidence_assessment: confAssessment,
+        sources: knowledge.sources || []
+      };
+    } catch (kErr) {
+      console.warn('[Disease Controller] Knowledge lookup warning:', kErr.message);
+      detailsContainer = {
+        description: "Detailed agricultural extension information is currently unavailable.",
+        symptoms: [],
+        causes: [],
+        recommendations: ["Consult a local agricultural extension specialist."],
+        prevention: ["Follow standard crop care routines."],
+        severity_level: pred.is_healthy ? "Healthy" : "Moderate Advisory",
+        advisory: "Information provided is for decision support only.",
+        confidence_assessment: getConfidenceAssessment(pred.confidence),
+        sources: []
+      };
+    }
 
     // Optional Database Persistence if farmId & farm were verified
     let dbRecord = null;
@@ -58,16 +91,16 @@ const detectDisease = async (req, res) => {
           farmId,
           disease: pred.display_name,
           confidence: pred.confidence,
-          severity: pred.is_healthy ? 'LOW' : 'MEDIUM',
-          description: `Crop: ${pred.crop}, Disease: ${pred.disease}`,
-          recommendation: pred.is_healthy ? 'No action required.' : 'Consult local agricultural extension advisor.'
+          severity: detailsContainer.severity_level,
+          description: detailsContainer.description,
+          recommendation: detailsContainer.recommendations.join('; ')
         });
       } catch (dbErr) {
         console.warn('[Disease Controller] DB persistence warning:', dbErr.message);
       }
     }
 
-    // Return standardized successful prediction response
+    // Return standardized successful prediction response (Backward compatible + enriched with data.details)
     const responseData = {
       success: true,
       data: {
@@ -80,7 +113,8 @@ const detectDisease = async (req, res) => {
           confidence: pred.confidence
         },
         top_predictions: mlResult.top_predictions,
-        model_version: mlResult.model_version
+        model_version: mlResult.model_version,
+        details: detailsContainer
       }
     };
 

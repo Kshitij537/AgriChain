@@ -1,137 +1,145 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import ImageUploader from '../components/disease/ImageUploader';
+import ImagePreview from '../components/disease/ImagePreview';
+import PredictionCard from '../components/disease/PredictionCard';
+import RecommendationCard from '../components/disease/RecommendationCard';
+import ErrorMessage from '../components/disease/ErrorMessage';
+import LoadingOverlay from '../components/disease/LoadingOverlay';
+import useDiseaseDetection from '../hooks/useDiseaseDetection';
 
 const DiseaseDetection = () => {
-  const [image, setImage] = useState(null);
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const {
+    file,
+    previewUrl,
+    loading,
+    prediction,
+    error,
+    selectFile,
+    clearSelection,
+    detect
+  } = useDiseaseDetection();
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(event.target?.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!image) return;
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResult({
-        disease: 'Leaf Rust',
-        confidence: 94,
-        severity: 'High',
-        recommendation: 'Apply fungicide within 48 hours to prevent spread'
-      });
-      setLoading(false);
-    }, 2000);
+  const handleAnalyze = () => {
+    detect();
   };
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <Navbar />
-      <main className="py-12 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-primary font-headline mb-4">AI Disease Detection</h1>
-            <p className="text-lg text-on-surface-variant">Upload crop images for real-time AI analysis</p>
+
+      <main className="flex-1 py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto space-y-8">
+          {/* Header Section */}
+          <div className="text-center sm:text-left">
+            <span className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
+              AgriChain ML & Decision Support
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 font-headline tracking-tight">
+              AI Crop Disease Detection & Management
+            </h1>
+            <p className="text-slate-600 mt-2 text-base sm:text-lg max-w-2xl">
+              Upload a clear leaf image of Cotton, Soybean, or Orange crops for instant real-time AI diagnosis and evidence-based agricultural recommendations.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Upload Section */}
-            <div className="glass-card rounded-xl p-8 shadow-sm border border-emerald-900/5">
-              <h2 className="text-2xl font-bold text-primary mb-6 font-headline">Upload Crop Image</h2>
-              
-              <div className="border-2 border-dashed border-outline-variant rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                {image ? (
-                  <div>
-                    <img src={image} alt="Crop" className="w-full h-64 object-cover rounded-lg mb-4" />
-                    <button
-                      type="button"
-                      onClick={() => setImage(null)}
-                      className="text-secondary font-bold hover:underline"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <span className="material-symbols-outlined text-6xl text-primary-container block mb-4">photo_camera</span>
-                    <p className="text-primary font-bold mb-2">Click to upload or drag and drop</p>
-                    <p className="text-sm text-on-surface-variant">PNG, JPG, GIF up to 10MB</p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <label htmlFor="image-upload" className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
+          {/* Main Grid: Upload & Controls on Left, Results & Guidance on Right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            
+            {/* Left Column: Image Selection & Controls */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-900/10 space-y-6">
+              <h2 className="text-xl font-bold text-slate-900 font-headline flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-700">upload_file</span>
+                Crop Leaf Image Selection
+              </h2>
+
+              {!previewUrl ? (
+                <ImageUploader onFileSelect={selectFile} disabled={loading} />
+              ) : (
+                <ImagePreview
+                  file={file}
+                  previewUrl={previewUrl}
+                  onClear={clearSelection}
+                  disabled={loading}
+                />
+              )}
+
+              {/* Error Banner */}
+              {error && (
+                <ErrorMessage error={error} onRetry={file ? handleAnalyze : null} />
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={handleAnalyze}
+                  disabled={!file || loading}
+                  className="flex-1 gradient-primary text-white py-3.5 px-6 rounded-xl font-bold text-base shadow-sm hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-lg">search</span>
+                      <span>Analyze Crop Leaf</span>
+                    </>
+                  )}
+                </button>
+
+                {previewUrl && (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    disabled={loading}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+                  >
+                    Clear
+                  </button>
                 )}
               </div>
-
-              <button
-                onClick={handleAnalyze}
-                disabled={!image || loading}
-                className="w-full mt-8 gradient-primary text-white py-4 rounded-lg font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50"
-              >
-                {loading ? 'Analyzing...' : 'Analyze Image'}
-              </button>
             </div>
 
-            {/* Results Section */}
-            <div>
-              {result ? (
-                <div className="glass-card rounded-xl p-8 shadow-sm border border-emerald-900/5">
-                  <h2 className="text-2xl font-bold text-primary mb-6 font-headline">Analysis Result</h2>
-                  
-                  <div className="space-y-6">
-                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                      <p className="text-sm text-on-surface-variant uppercase font-bold mb-1">Detected Disease</p>
-                      <p className="text-2xl font-bold text-secondary">{result.disease}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-on-surface-variant uppercase font-bold mb-1">Confidence</p>
-                        <p className="text-2xl font-bold text-secondary">{result.confidence}%</p>
-                      </div>
-                      <div className="p-4 bg-orange-50 rounded-lg">
-                        <p className="text-sm text-on-surface-variant uppercase font-bold mb-1">Severity</p>
-                        <p className="text-2xl font-bold text-secondary-container">{result.severity}</p>
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-sm text-on-surface-variant uppercase font-bold mb-2">Recommendation</p>
-                      <p className="text-primary">{result.recommendation}</p>
-                    </div>
-                  </div>
-                </div>
+            {/* Right Column: Prediction Results & Enriched Recommendations */}
+            <div className="space-y-6">
+              {loading ? (
+                <LoadingOverlay message="Analyzing crop leaf image and fetching recommendations..." />
+              ) : prediction ? (
+                <>
+                  <PredictionCard predictionData={prediction} />
+                  {prediction.details && (
+                    <RecommendationCard
+                      details={prediction.details}
+                      isHealthy={prediction.prediction?.is_healthy}
+                    />
+                  )}
+                </>
               ) : (
-                <div className="glass-card rounded-xl p-8 shadow-sm border border-emerald-900/5 text-center">
-                  <span className="material-symbols-outlined text-6xl text-surface-container-highest block mb-4">info</span>
-                  <p className="text-on-surface-variant">Upload and analyze an image to see results</p>
+                <div className="bg-white rounded-2xl p-10 shadow-sm border border-emerald-900/10 text-center space-y-4">
+                  <div className="w-16 h-16 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                    <span className="material-symbols-outlined text-3xl">psychology</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900">Awaiting Image Upload</h3>
+                  <p className="text-slate-500 text-sm max-w-md mx-auto">
+                    Select or drag-and-drop a crop leaf image on the left and click "Analyze Crop Leaf" to view disease prediction and actionable agronomic guidance.
+                  </p>
+                  <div className="pt-4 border-t border-slate-100 flex justify-center gap-6 text-xs text-slate-500 font-medium">
+                    <span>🌱 Cotton</span>
+                    <span>🌿 Soybean</span>
+                    <span>🍊 Orange</span>
+                  </div>
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </main>
+
       <Footer />
     </div>
   );
