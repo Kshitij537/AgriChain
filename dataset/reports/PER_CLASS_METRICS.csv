@@ -1,0 +1,13 @@
+class_index,class_name,support,correct,incorrect,precision,recall,f1_score
+0,Cotton Healthy,273,268,5,0.98893,0.981685,0.985294
+1,Cotton Bacterial Blight,275,273,2,0.975,0.992727,0.983784
+2,Cotton Alternaria Leaf Spot,26,26,0,0.928571,1.0,0.962963
+3,Cotton Leaf Curl Virus,57,55,2,1.0,0.964912,0.982143
+4,Soybean Healthy,906,900,6,0.997783,0.993377,0.995575
+5,Soybean Rust,26,23,3,0.741935,0.884615,0.807018
+6,Soybean Bacterial Pustule,16,9,7,0.75,0.5625,0.642857
+7,Soybean Brown Spot,12,12,0,1.0,1.0,1.0
+8,Orange Healthy,1484,1436,48,0.998609,0.967655,0.982888
+9,Orange Citrus Canker,1717,1709,8,0.972681,0.995341,0.98388
+10,Orange Black Spot,31,31,0,0.837838,1.0,0.911765
+11,Orange Greening,881,881,0,1.0,1.0,1.0

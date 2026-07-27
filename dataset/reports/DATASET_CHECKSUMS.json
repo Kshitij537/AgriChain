@@ -1,0 +1,9 @@
+{
+  "total_images": 38050,
+  "dataset_content_fingerprint": "bd22a4ae6881a5d7729a5b2cc434c88a992c9a837f20b1a703c86ebcfd8cac19",
+  "metadata_leakage_fingerprint": "9a00c066415794adaefffb89c19aa20d0a31ed489885759758240a3c27ab0339",
+  "previous_dataset_fingerprint": "d1fa0f7adecd7bd28710000f5654a2ba2178805d2ec06dadbb35f339571b9d88",
+  "dataset_sha256": "9a00c066415794adaefffb89c19aa20d0a31ed489885759758240a3c27ab0339",
+  "generated_at": "2026-07-25 21:13:42",
+  "version": "v1"
+}

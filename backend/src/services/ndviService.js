@@ -52,7 +52,7 @@ const calculateNDVI = async (coordinates) => {
       coordinates: coordinates,
       timestamp: new Date().toISOString()
     }, {
-      timeout: 30000 // 30 second timeout for Earth Engine processing
+      timeout: 90000 // 90 second timeout for Earth Engine processing
     });
 
     const result = response.data;
@@ -115,7 +115,7 @@ const getNDVITimeSeries = async (coordinates, days = 30) => {
       days: safeDays,
       timestamp: new Date().toISOString(),
     }, {
-      timeout: 60000,
+      timeout: 90000,
     });
 
     const result = response.data;

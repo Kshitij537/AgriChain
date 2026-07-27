@@ -1,0 +1,6 @@
+{
+  "python.analysis.extraPaths": [
+    "./satellite-service/src",
+    "./ml-service/src"
+  ]
+}

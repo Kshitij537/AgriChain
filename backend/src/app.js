@@ -10,7 +10,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').spli
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -34,6 +34,8 @@ app.use((req, res, next) => {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/farms', require('./routes/farmRoutes'));
 app.use('/api/ndvi', require('./routes/ndviRoutes'));
+app.use('/api/disease', require('./routes/diseaseRoutes'));
+app.use('/api/diseases', require('./routes/diseaseRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
