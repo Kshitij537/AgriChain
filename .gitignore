@@ -155,7 +155,12 @@ dataset/reports/NEAR_DUPLICATE_REVIEW.csv
 ml-service/models/*.h5
 ml-service/models/checkpoints/
 ml-service/logs/
+
+# Ignore all Keras models except the frozen production model
 *.keras
+!ml-service/models/disease_model.keras
+
 *.ckpt
+
 uploads/
 temp/
