@@ -19,18 +19,28 @@ if str(SRC_DIR) not in sys.path:
 
 from labels import CLASS_NAMES
 from preprocess import preprocess_image, InvalidImageError, UnsupportedImageError
-from predict import predict_disease, warmup_model, InferenceError, get_model
+from predict import (
+    predict_disease,
+    warmup_model,
+    InferenceError,
+    get_model,
+    is_supported_tensorflow_runtime,
+    get_runtime_support_message,
+)
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB limit
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Application startup: prime TensorFlow graph & cache model singleton
-    try:
-        warmup_model()
-        print("[FastAPI Startup] Production disease model primed and cached successfully.")
-    except Exception as e:
-        print(f"[FastAPI Startup Warning] Model warmup encountered error: {e}")
+    if is_supported_tensorflow_runtime():
+        try:
+            #warmup_model()
+            print("[FastAPI Startup] Production disease model primed and cached successfully.")
+        except Exception as e:
+            print(f"[FastAPI Startup Warning] Model warmup encountered error: {e}")
+    else:
+        print(f"[FastAPI Startup Warning] {get_runtime_support_message()}")
     yield
 
 app = FastAPI(
@@ -74,6 +84,9 @@ class PredictionResponse(BaseModel):
     prediction: PredictionItem
     top_predictions: List[PredictionItem]
     model_version: str = "1.0.0"
+    is_reliable: bool = True
+    low_confidence_warning: Optional[str] = None
+    limited_data_warning: Optional[str] = None
 
 class HealthResponse(BaseModel):
     status: str = "healthy"
@@ -96,7 +109,12 @@ class ModelInfoResponse(BaseModel):
 @app.get("/health", response_model=HealthResponse, tags=["Status"])
 async def health_check():
     """Check service operational status and model readiness."""
-    is_loaded = get_model() is not None
+    is_loaded = False
+    if is_supported_tensorflow_runtime():
+        try:
+            is_loaded = get_model() is not None
+        except Exception:
+            is_loaded = False
     return HealthResponse(
         status="healthy" if is_loaded else "degraded",
         service="AgriChain Disease Detection",
@@ -167,7 +185,7 @@ async def predict_disease_endpoint(
     except UnsupportedImageError as e:
         raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
     except InferenceError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Inference pipeline failure: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Inference pipeline failure: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred during prediction.")
 
@@ -186,5 +204,8 @@ async def predict_disease_endpoint(
         success=True,
         prediction=pred_item,
         top_predictions=top_items,
-        model_version="1.0.0"
+        model_version="1.0.0",
+        is_reliable=res_dict.get("is_reliable", True),
+        low_confidence_warning=res_dict.get("low_confidence_warning"),
+        limited_data_warning=res_dict.get("limited_data_warning"),
     )

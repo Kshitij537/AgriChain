@@ -38,56 +38,94 @@ const validateCoordinates = (coordinates) => {
 /**
  * Calculate NDVI using Python Earth Engine service
  * @param {Array} coordinates - Polygon coordinates
+ * @param {Boolean} includePixelGrid - Whether to include per-pixel NDVI data for heatmap
  * @returns {Promise<Object>} - NDVI result
  */
-const calculateNDVI = async (coordinates) => {
+const calculateNDVI = async (coordinates, includePixelGrid = false) => {
   try {
     // Validate input
     validateCoordinates(coordinates);
 
-    console.log(`[NDVI Service] Calculating NDVI for polygon with ${coordinates.length} points`);
+    console.log(`[NDVI Service] Calculating NDVI for polygon with ${coordinates.length} points (pixel grid: ${includePixelGrid})`);
+
+    // Dynamic timeout: longer for pixel grid requests
+    const timeout = includePixelGrid ? 120000 : 60000; // 2 minutes for pixel grid, 1 minute for basic
 
     // Call Python microservice
     const response = await axios.post(`${PYTHON_SERVICE_URL}/api/ndvi/calculate`, {
       coordinates: coordinates,
+      includePixelGrid: includePixelGrid,
       timestamp: new Date().toISOString()
     }, {
-      timeout: 90000 // 90 second timeout for Earth Engine processing
+      timeout: timeout
     });
 
     const result = response.data;
 
+    if (result && result.success === false) {
+      return {
+        success: false,
+        message: result.message || result.error || 'No cloud-free satellite imagery available.',
+        error: result.error || result.message
+      };
+    }
+
     // Validate response
-    if (!result.ndvi || result.ndvi === null || result.ndvi === undefined) {
+    if (typeof result.ndvi !== 'number' || Number.isNaN(result.ndvi)) {
       throw new Error('Invalid response from Earth Engine service: missing NDVI value');
     }
 
-    console.log(`[NDVI Service] NDVI calculated successfully: ${result.ndvi}`);
+    console.log(`[NDVI Service] NDVI calculated successfully: ${result.ndvi}${includePixelGrid ? ` (${result.pixelGrid?.length || 0} pixels)` : ''}`);
 
     return {
       success: true,
       ndvi: result.ndvi,
-      ndviRaw: typeof result.ndviRaw === 'number' ? result.ndviRaw : (result.ndviRaw != null ? Number(result.ndviRaw) : null),
+      averageNDVI: result.averageNDVI ?? result.ndvi,
+      minimumNDVI: result.minimumNDVI ?? null,
+      maximumNDVI: result.maximumNDVI ?? null,
+      stdDevNDVI: result.stdDevNDVI ?? null,
+      healthyArea: result.healthyArea ?? null,
+      moderateArea: result.moderateArea ?? null,
+      poorArea: result.poorArea ?? null,
+      healthyAreaPct: result.healthyAreaPct ?? result.healthyArea ?? null,
+      moderateAreaPct: result.moderateAreaPct ?? result.moderateArea ?? null,
+      poorAreaPct: result.poorAreaPct ?? result.poorArea ?? null,
+      ndviRaw: result.ndviRaw != null ? Number(result.ndviRaw) : null,
       health: result.health,
       status: result.status,
       timestamp: new Date().toISOString(),
       imageDate: result.imageDate || null,
-      cloudCoverage: result.cloudCoverage || null,
-      datasource: result.datasource || null
+      cloudCover: result.cloudCover ?? result.cloudCoverage ?? null,
+      cloudCoverage: result.cloudCoverage ?? result.cloudCover ?? null,
+      imagesUsed: result.imagesUsed ?? null,
+      confidence: result.confidence ?? null,
+      confidenceReason: result.confidenceReason ?? null,
+      timeWindow: result.timeWindow ?? null,
+      datasource: result.datasource || null,
+      pixelGrid: result.pixelGrid || null
     };
 
   } catch (error) {
     console.error('[NDVI Service] Error calculating NDVI:', error.message);
 
-    // Handle specific error cases
     if (error.code === 'ECONNREFUSED') {
       throw new Error(`Satellite service is not available at ${PYTHON_SERVICE_URL}. Ensure satellite-service is running and PYTHON_SERVICE_URL is correct`);
     }
 
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      throw new Error('Satellite scan timed out. The field may be too large or Earth Engine is slow. Try again or use a smaller field.');
+    }
+
     if (error.response) {
-      // Python service returned an error
       const errorData = error.response.data;
-      throw new Error(errorData.error || `Earth Engine service error: ${error.response.status}`);
+      if (errorData && errorData.success === false) {
+        return {
+          success: false,
+          message: errorData.message || errorData.error || 'No cloud-free satellite imagery available.',
+          error: errorData.error || errorData.message
+        };
+      }
+      throw new Error(errorData.error || errorData.message || `Earth Engine service error: ${error.response.status}`);
     }
 
     if (error.code === 'ENOTFOUND') {

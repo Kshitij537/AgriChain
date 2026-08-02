@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Load leaflet-heat for better heatmap visualization
-if (typeof window !== 'undefined' && !window.L?.heatLayer) {
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.min.js';
-  document.head.appendChild(script);
-}
+const HA_TO_ACRES = 2.47105;
+const formatAcres = (ha) => {
+  const num = Number(ha);
+  if (!Number.isFinite(num)) return '—';
+  return `${(num * HA_TO_ACRES).toFixed(2)} ac`;
+};
 
 const NDVIHeatmapCard = ({ field, ndviData }) => {
   const mapContainer = useRef(null);
@@ -55,19 +55,114 @@ const NDVIHeatmapCard = ({ field, ndviData }) => {
         map.current.fitBounds(group.getBounds(), { padding: [50, 50] });
       }
 
-      // Add NDVI heatmap grid overlay if NDVI data exists
-      if (ndviData?.ndvi) {
-        addNDVIHeatmap(map.current, field, ndviData.ndvi);
+      // Add NDVI heatmap grid overlay
+      if (ndviData?.pixelGrid && Array.isArray(ndviData.pixelGrid)) {
+        // Use real per-pixel data from satellite service
+        addRealNDVIHeatmap(map.current, ndviData.pixelGrid, field);
+      } else if (ndviData?.ndvi) {
+        // Fallback to simulated heatmap if no pixel data available
+        addSimulatedNDVIHeatmap(map.current, field, ndviData.ndvi);
       }
     }
 
     return () => {
-      // Don't destroy map on unmount to preserve state
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
     };
   }, [field, ndviData]);
 
+  const addRealNDVIHeatmap = (mapInstance, pixelGrid, fieldData) => {
+    console.log(`[NDVI Heatmap] Rendering ${pixelGrid.length} real satellite pixels`);
+
+    // Render each pixel from the satellite data
+    pixelGrid.forEach(pixel => {
+      const color = getNDVIColor(pixel.ndvi);
+      L.circleMarker([pixel.lat, pixel.lon], {
+        radius: 6,
+        fillColor: color,
+        color: color,
+        weight: 0,
+        opacity: 0.85,
+        fillOpacity: 0.75,
+      }).addTo(mapInstance);
+    });
+
+    // Add field boundary on top
+    if (fieldData.boundaryCoordinates) {
+      const coordinates = fieldData.boundaryCoordinates.map(coord => [coord[1], coord[0]]);
+      L.polygon(coordinates, {
+        color: '#000000',
+        weight: 4,
+        opacity: 1,
+        fillOpacity: 0,
+        dashArray: '5, 5',
+      }).addTo(mapInstance);
+    }
+  };
+
+  const addSimulatedNDVIHeatmap = (mapInstance, fieldData, ndviValue) => {
+    if (!fieldData.boundaryCoordinates) return;
+
+    console.log('[NDVI Heatmap] Using simulated heatmap (no pixel data available)');
+
+    const coordinates = fieldData.boundaryCoordinates.map(coord => [coord[1], coord[0]]);
+
+    const lats = coordinates.map(c => c[0]);
+    const lons = coordinates.map(c => c[1]);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLon = (minLon + maxLon) / 2;
+
+    const latStep = (maxLat - minLat) / 25;
+    const lonStep = (maxLon - minLon) / 25;
+
+    for (let i = 0; i <= 25; i++) {
+      for (let j = 0; j <= 25; j++) {
+        const lat = minLat + i * latStep;
+        const lon = minLon + j * lonStep;
+
+        if (!isPointInPolygon([lat, lon], coordinates)) continue;
+
+        const distFromCenter = Math.sqrt(
+          Math.pow((lat - centerLat) / Math.max(maxLat - minLat, 1e-9), 2) +
+          Math.pow((lon - centerLon) / Math.max(maxLon - minLon, 1e-9), 2)
+        );
+
+        // Deterministic variation based on grid position
+        const pseudoVariation = (Math.sin(i * 3.7 + j * 2.1) * 0.5 + 0.5 - 0.5) * 0.12;
+        const centerMultiplier = Math.exp(-distFromCenter * 1.8);
+        const ndvi = Math.max(0.15, Math.min(0.95, ndviValue + (centerMultiplier * 0.2) + pseudoVariation));
+
+        const color = getNDVIColor(ndvi);
+        L.circleMarker([lat, lon], {
+          radius: 6,
+          fillColor: color,
+          color: color,
+          weight: 0,
+          opacity: 0.85,
+          fillOpacity: 0.75,
+        }).addTo(mapInstance);
+      }
+    }
+
+    // Field boundary polygon on top
+    L.polygon(coordinates, {
+      color: '#000000',
+      weight: 4,
+      opacity: 1,
+      fillOpacity: 0,
+      dashArray: '5, 5',
+    }).addTo(mapInstance);
+  };
+
   const isPointInPolygon = (point, polygon) => {
-    // Ray casting algorithm - more robust implementation
+    // Ray casting algorithm
     const [lat, lon] = point;
     let isInside = false;
     
@@ -83,91 +178,6 @@ const NDVIHeatmapCard = ({ field, ndviData }) => {
     return isInside;
   };
 
-  const addNDVIHeatmap = (mapInstance, fieldData, ndviValue) => {
-    if (!fieldData.boundaryCoordinates) return;
-
-    // Create a heatmap grid overlay with NDVI data
-    const coordinates = fieldData.boundaryCoordinates.map(coord => [coord[1], coord[0]]);
-    
-    // Calculate field bounds to generate properly scaled grid
-    const lats = coordinates.map(c => c[0]);
-    const lons = coordinates.map(c => c[1]);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLon = Math.min(...lons);
-    const maxLon = Math.max(...lons);
-    
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLon = (minLon + maxLon) / 2;
-    
-    // Calculate dynamic step sizes based on field dimensions
-    // Use 25x25 grid for better granularity and containment
-    const latStep = (maxLat - minLat) / 25;
-    const lonStep = (maxLon - minLon) / 25;
-
-    // Generate a grid of points with NDVI values (simulating satellite data)
-    // Only include points inside the field polygon
-    const heatmapPoints = [];
-    
-    for (let i = 0; i <= 25; i++) {
-      for (let j = 0; j <= 25; j++) {
-        const lat = minLat + i * latStep;
-        const lon = minLon + j * lonStep;
-        
-        // Check if point is inside the field polygon
-        if (!isPointInPolygon([lat, lon], coordinates)) continue;
-        
-        // Create a more realistic NDVI distribution with higher values in center
-        const distFromCenter = Math.sqrt(
-          Math.pow((lat - centerLat) / (maxLat - minLat), 2) + 
-          Math.pow((lon - centerLon) / (maxLon - minLon), 2)
-        );
-        
-        // Gaussian distribution centered at field center
-        const centerMultiplier = Math.exp(-distFromCenter * 1.8);
-        const variation = (Math.random() - 0.5) * 0.15;
-        const ndvi = Math.max(0.15, Math.min(0.95, ndviValue + (centerMultiplier * 0.25) + variation));
-        
-        heatmapPoints.push([lat, lon, ndvi]);
-      }
-    }
-
-    // Add heatmap layer with tight constraints to prevent overflow
-    if (window.L?.heatLayer && heatmapPoints.length > 0) {
-      // Use smaller radius and blur for better polygon containment
-      L.heatLayer(heatmapPoints, {
-        radius: 22,
-        blur: 12,
-        maxZoom: 18,
-        max: 1.0,
-        min: 0.15,
-        gradient: getNDVIGradient(),
-      }).addTo(mapInstance);
-    } else if (heatmapPoints.length > 0) {
-      // Fallback: Use CircleMarkers with proper clipping to field boundary
-      heatmapPoints.forEach(([lat, lon, intensity]) => {
-        const color = getNDVIColor(intensity);
-        L.circleMarker([lat, lon], {
-          radius: 6,
-          fillColor: color,
-          color: color,
-          weight: 0,
-          opacity: 0.85,
-          fillOpacity: 0.75,
-        }).addTo(mapInstance);
-      });
-    }
-
-    // Add field boundary polygon with better styling for heatmap visualization
-    L.polygon(coordinates, {
-      color: '#000000',
-      weight: 4,
-      opacity: 1,
-      fillOpacity: 0,
-      dashArray: '5, 5',
-    }).addTo(mapInstance);
-  };
-
   const getNDVIColor = (ndviValue) => {
     // NDVI color scale: brown (low) -> orange -> yellow -> green (high)
     if (ndviValue < 0.1) return '#8B4513'; // Brown
@@ -180,22 +190,6 @@ const NDVIHeatmapCard = ({ field, ndviData }) => {
     if (ndviValue < 0.8) return '#32CD32'; // Lime green
     if (ndviValue < 0.9) return '#00CC00'; // Green
     return '#006400'; // Dark green
-  };
-
-  const getNDVIGradient = () => {
-    return {
-      0.0: '#8B4513',  // Brown
-      0.1: '#A0522D',  // Sienna
-      0.2: '#CD5C5C',  // Indian red
-      0.3: '#FF6347',  // Tomato
-      0.4: '#FF8C00',  // Dark orange
-      0.5: '#FFD700',  // Gold
-      0.6: '#FFFF00',  // Yellow
-      0.7: '#ADFF2F',  // Green yellow
-      0.8: '#32CD32',  // Lime green
-      0.9: '#00CC00',  // Green
-      1.0: '#006400',  // Dark green
-    };
   };
 
   const toggleFullscreen = () => {
@@ -237,9 +231,9 @@ const NDVIHeatmapCard = ({ field, ndviData }) => {
       <div className="h-full flex flex-col">
         {/* Map Header */}
         <div className="relative h-[500px] bg-surface-container-low">
-          {/* NDVI Date Label */}
+          {/* Crop Health Date Label */}
           <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg shadow-lg">
-            <span className="text-sm font-bold text-primary">NDVI, {getNDVIDate()}</span>
+            <span className="text-sm font-bold text-primary">Crop Map, {getNDVIDate()}</span>
           </div>
 
           {/* Map Controls */}
@@ -265,35 +259,49 @@ const NDVIHeatmapCard = ({ field, ndviData }) => {
             style={{ position: 'relative' }}
           />
 
-          {/* NDVI Color Legend */}
+          {/* Crop Health Color Legend */}
           <div className="absolute bottom-4 left-4 z-[9999] bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg pointer-events-auto">
             <div className="flex items-center gap-3">
               <div className="flex flex-col gap-1">
-                <div className="text-[10px] font-bold text-on-surface-variant mb-1">NDVI Scale</div>
+                <div className="text-[10px] font-bold text-on-surface-variant mb-1">Crop Health</div>
                 <div className="w-32 h-4 rounded bg-gradient-to-r from-[#8B4513] via-[#FF8C00] via-[#FFD700] to-[#006400]"></div>
                 <div className="flex justify-between text-[8px] font-bold text-on-surface-variant">
-                  <span>0.0</span>
-                  <span>0.5</span>
-                  <span>1.0</span>
+                  <span>Poor</span>
+                  <span>Fair</span>
+                  <span>Good</span>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Pixel Data Status Badge */}
+          {ndviData?.pixelGrid && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-green-500/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg">
+              <span className="text-xs font-bold text-white">
+                Real Satellite Data • {ndviData.pixelGrid.length} pixels
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Card Footer */}
         <div className="p-6 bg-surface-container-lowest">
-          <h4 className="text-sm font-bold text-primary mb-1 font-headline">Field Boundary Analysis</h4>
+          <h4 className="text-sm font-bold text-primary mb-1 font-headline">Field Boundary View</h4>
           <p className="text-xs text-on-surface-variant mb-2">
-            Coverage: {field?.area || '142.5'} Hectares
+            Field size: {formatAcres(field?.area)}
           </p>
           {ndviData?.ndvi && (
-            <p className="text-xs text-on-surface-variant mb-4">
-              Current NDVI: <span className="font-bold text-primary">{ndviData.ndvi.toFixed(2)}</span>
+            <p className="text-xs text-on-surface-variant mb-2">
+              Crop health score: <span className="font-bold text-primary">{ndviData.ndvi.toFixed(2)}</span>
+            </p>
+          )}
+          {ndviData?.pixelGrid && (
+            <p className="text-xs text-green-600 mb-4">
+              ✓ Showing real satellite analysis for each area of your field
             </p>
           )}
           <button className="w-full py-2.5 bg-surface-container-low text-primary text-xs font-bold rounded-full hover:bg-surface-container-high transition-all">
-            Open Full GIS
+            Open Full Map
           </button>
         </div>
       </div>

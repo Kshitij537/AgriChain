@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import { t, getCurrentLanguage } from '../utils/translations';
+
+const HA_TO_ACRES = 2.47105;
+const formatAcres = (ha) => {
+  const num = Number(ha);
+  if (!Number.isFinite(num)) return '—';
+  return `${(num * HA_TO_ACRES).toFixed(2)} ac`;
+};
 
 const SavedFields = () => {
   const navigate = useNavigate();
+  const [lang, setLang] = useState(getCurrentLanguage());
   const [searchInput, setSearchInput] = useState('');
-  const [cropFilter, setCropFilter] = useState('All');
+  const [cropFilter, setCropFilter] = useState('All Crops');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [fields, setFields] = useState([]);
   const [filteredFields, setFilteredFields] = useState([]);
@@ -19,17 +28,32 @@ const SavedFields = () => {
 
   // Fetch farms from backend on component mount
   useEffect(() => {
+    const handleLanguageChange = () => setLang(getCurrentLanguage());
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
+
+  useEffect(() => {
     const fetchFarms = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        console.log('📡 Fetching farms from:', `${API_BASE_URL}/api/farms/user`);
+        const storedUser = localStorage.getItem('user');
+        const userId = storedUser ? JSON.parse(storedUser)?.id : null;
+        const token = localStorage.getItem('token');
 
-        const response = await fetch(`${API_BASE_URL}/api/farms/user`, {
+        const url = userId
+          ? `${API_BASE_URL}/api/farms/user?userId=${userId}`
+          : `${API_BASE_URL}/api/farms/user`;
+
+        console.log('📡 Fetching farms from:', url);
+
+        const response = await fetch(url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
@@ -66,8 +90,8 @@ const SavedFields = () => {
 
             return {
               id: farm.id,
-              name: farm.name || 'Unnamed Field',
-              crop: farm.cropType || 'Unknown',
+              name: farm.name || t('fieldAnalytics', 'field', lang),
+              crop: farm.cropType || t('savedFields', 'unknown', lang),
               area: farm.area || 0,
               status: status,
               statusColor: statusColor,
@@ -96,7 +120,7 @@ const SavedFields = () => {
     };
 
     fetchFarms();
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, lang]);
 
   // Handle filtering
   useEffect(() => {
@@ -266,23 +290,23 @@ const SavedFields = () => {
           <div className="flex justify-between items-end">
             <div>
               <h2 className="text-5xl font-headline font-extrabold text-primary tracking-tighter mb-2">
-                Saved Fields
+                {t('savedFields', 'title', lang)}
               </h2>
               <p className="text-lg text-on-surface-variant font-medium">
-                Manage your {fields.length} active {fields.length === 1 ? 'field' : 'fields'} across North America.
+                You have {fields.length} {t('savedFields', fields.length === 1 ? 'fieldCountSingular' : 'fieldCountPlural', lang)}.
               </p>
             </div>
             <div className="flex gap-4">
               <button className="flex items-center gap-2 px-6 py-3 bg-surface-container-high text-primary font-semibold rounded-full hover:bg-surface-container-highest transition-all scale-95 active:scale-90">
                 <span className="material-symbols-outlined">filter_list</span>
-                Filter
+                {t('savedFields', 'filter', lang)}
               </button>
               <button
                 onClick={handleAddField}
                 className="signature-gradient text-white px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-primary/20 transition-all scale-95 active:scale-90 flex items-center gap-2"
               >
                 <span className="material-symbols-outlined">add</span>
-                Add New Field
+                {t('savedFields', 'addNewField', lang)}
               </button>
             </div>
           </div>
@@ -297,7 +321,7 @@ const SavedFields = () => {
                 </span>
                 <input
                   type="text"
-                  placeholder="Search by name, crop or area..."
+                  placeholder={t('savedFields', 'searchPlaceholder', lang)}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full bg-surface-container-highest/40 border-none rounded-full pl-12 pr-6 py-3 focus:ring-2 focus:ring-primary/40 transition-all text-on-surface"
@@ -309,7 +333,7 @@ const SavedFields = () => {
                   onChange={(e) => setCropFilter(e.target.value)}
                   className="bg-surface-container-low border-none rounded-full px-6 py-3 text-sm font-medium focus:ring-primary/20"
                 >
-                  <option>All Crops</option>
+                  <option value="All Crops">{t('savedFields', 'allCrops', lang)}</option>
                   {[...new Set(fields.map((f) => f.crop))].map((crop) => (
                     <option key={crop} value={crop}>
                       {crop}
@@ -321,10 +345,10 @@ const SavedFields = () => {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="bg-surface-container-low border-none rounded-full px-6 py-3 text-sm font-medium focus:ring-primary/20"
                 >
-                  <option>All Status</option>
-                  <option>Good</option>
-                  <option>Moderate</option>
-                  <option>Poor</option>
+                  <option value="All Status">{t('savedFields', 'allStatus', lang)}</option>
+                  <option value="Good">{t('savedFields', 'good', lang)}</option>
+                  <option value="Moderate">{t('savedFields', 'moderate', lang)}</option>
+                  <option value="Poor">{t('savedFields', 'poor', lang)}</option>
                 </select>
               </div>
             </div>
@@ -336,10 +360,10 @@ const SavedFields = () => {
                   <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
                     report_problem
                   </span>
-                  Critical Alerts
+                  {t('savedFields', 'criticalAlerts', lang)}
                 </h3>
                 <span className="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
-                  {fields.filter((f) => f.alert).length} New
+                  {fields.filter((f) => f.alert).length} {t('savedFields', 'new', lang)}
                 </span>
               </div>
               <div className="flex flex-col gap-3">
@@ -351,19 +375,21 @@ const SavedFields = () => {
                       <div className="w-2 h-2 rounded-full bg-error animate-pulse"></div>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-on-surface">
-                          {field.status === 'Poor' ? 'Health Critical: ' : 'Attention Needed: '}
+                          {field.status === 'Poor'
+                            ? t('savedFields', 'cropHealthCritical', lang)
+                            : t('savedFields', 'needsAttention', lang)}{' '}
                           {field.name}
                         </p>
                         <p className="text-[10px] text-on-surface-variant">
                           {field.status === 'Poor'
-                            ? 'NDVI trend declining rapidly'
-                            : 'Check field status immediately'}
+                            ? t('savedFields', 'cropHealthDropping', lang)
+                            : t('savedFields', 'checkFieldSoon', lang)}
                         </p>
                       </div>
                     </div>
                   ))}
                 {fields.filter((f) => f.alert).length === 0 && (
-                  <p className="text-xs text-on-surface-variant italic">No critical alerts</p>
+                  <p className="text-xs text-on-surface-variant italic">{t('savedFields', 'noCriticalAlerts', lang)}</p>
                 )}
               </div>
             </div>
@@ -378,21 +404,21 @@ const SavedFields = () => {
                 cloud_download
               </span>
             </div>
-            <h3 className="text-xl font-headline font-bold text-on-surface mb-2">Loading fields...</h3>
-            <p className="text-on-surface-variant">Fetching your saved field data</p>
+            <h3 className="text-xl font-headline font-bold text-on-surface mb-2">{t('savedFields', 'loadingFields', lang)}</h3>
+            <p className="text-on-surface-variant">{t('savedFields', 'fetchingSavedFields', lang)}</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-24">
             <span className="material-symbols-outlined text-6xl text-error mb-4">
               error_outline
             </span>
-            <h3 className="text-xl font-headline font-bold text-on-surface mb-2">Error loading fields</h3>
+            <h3 className="text-xl font-headline font-bold text-on-surface mb-2">{t('savedFields', 'errorLoadingFields', lang)}</h3>
             <p className="text-on-surface-variant mb-6 max-w-md text-center">{error}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-6 py-2 bg-primary text-white rounded-full font-semibold hover:shadow-lg transition-shadow"
             >
-              Try Again
+              {t('savedFields', 'tryAgain', lang)}
             </button>
           </div>
         ) : filteredFields.length > 0 ? (
@@ -405,10 +431,10 @@ const SavedFields = () => {
                   className="h-4 w-4 rounded border-outline/30 accent-primary focus:ring-primary/30"
                   checked={isAllFilteredSelected}
                   onChange={handleSelectAllFiltered}
-                  aria-label="Select all filtered fields"
+                  aria-label={t('savedFields', 'selectAllFiltered', lang)}
                 />
-                <span className="font-bold">Select all</span>
-                <span className="text-on-surface-variant font-medium">({selectedFieldIds.size} selected)</span>
+                <span className="font-bold">{t('savedFields', 'selectAll', lang)}</span>
+                <span className="text-on-surface-variant font-medium">({selectedFieldIds.size} {t('savedFields', 'selected', lang)})</span>
               </label>
 
               <button
@@ -417,7 +443,7 @@ const SavedFields = () => {
                 disabled={selectedFieldIds.size === 0}
                 className="px-5 py-2 rounded-full font-bold bg-error text-white hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Delete selected
+                {t('savedFields', 'deleteSelected', lang)}
               </button>
             </div>
 
@@ -425,6 +451,7 @@ const SavedFields = () => {
             {filteredFields.map((field) => (
               <FieldCard
                 key={field.id}
+                lang={lang}
                 field={field}
                 getSparklineHeights={getSparklineHeights}
                 getStatusIcon={getStatusIcon}
@@ -444,11 +471,11 @@ const SavedFields = () => {
             <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">
               search_off
             </span>
-            <h3 className="text-xl font-headline font-bold text-on-surface mb-2">No fields found</h3>
+            <h3 className="text-xl font-headline font-bold text-on-surface mb-2">{t('savedFields', 'noFieldsFound', lang)}</h3>
             <p className="text-on-surface-variant mb-6 max-w-md text-center">
               {fields.length === 0
-                ? 'No fields yet. Click "Add New Field" to create your first field.'
-                : 'Try adjusting your filters or search terms'}
+                ? t('savedFields', 'noFieldsYet', lang)
+                : t('savedFields', 'adjustFilters', lang)}
             </p>
             {fields.length === 0 && (
               <button
@@ -456,7 +483,7 @@ const SavedFields = () => {
                 className="signature-gradient text-white px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined">add</span>
-                Create First Field
+                {t('savedFields', 'createFirstField', lang)}
               </button>
             )}
           </div>
@@ -472,9 +499,9 @@ const SavedFields = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] font-bold uppercase tracking-widest text-primary-fixed/80">
-            AI Insights
+            {t('savedFields', 'smartTips', lang)}
           </span>
-          <span className="text-sm font-semibold">Yield Forecast Ready</span>
+          <span className="text-sm font-semibold">{t('savedFields', 'cropAdviceReady', lang)}</span>
         </div>
       </div>
     </div>
@@ -482,7 +509,7 @@ const SavedFields = () => {
 };
 
 // Field Card Component
-const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, onEdit, onDelete, onViewAnalytics, isDeleting, selected, onSelectChange }) => {
+const FieldCard = ({ field, lang, getSparklineHeights, getStatusIcon, getStatusColor, onEdit, onDelete, onViewAnalytics, isDeleting, selected, onSelectChange }) => {
   const [imageLoaded, setImageLoaded] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -491,6 +518,19 @@ const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, 
   const heights = getSparklineHeights(field.sparkline);
   const statusIcon = getStatusIcon(field.status);
   const statusColorClass = getStatusColor(field.status);
+  const translatedStatus = t(
+    'savedFields',
+    (field.status || '').toLowerCase() === 'good'
+      ? 'good'
+      : (field.status || '').toLowerCase() === 'moderate'
+      ? 'moderate'
+      : (field.status || '').toLowerCase() === 'poor'
+      ? 'poor'
+      : (field.status || '').toLowerCase() === 'excellent'
+      ? 'excellent'
+      : 'unknown',
+    lang
+  );
 
   const fallbackImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDS9EhHAn698C43mf5Vmrjqf-HNbjaOF56jYJf8FnM9wrAQmgyC31y1zaE5TGCzJEe1CUsGjepU4g5b-Mqf0ld4KoiIFMbxSJkYCDOTK1ky8kS6JjOTmJKEDLfb5nutCXJsQBsH1M0au60u6jbTm7cVdHoQE9r2y9Om1elJQAHLGvQ5o4tjmAf2hH208dgJGLYjfCfiJcAFWNHZ9zXQSV0CFzZvfH6zURb2pBSSexULiV5Eqq5lrIjd0JObxQzkw22cENcEDRUracQ';
   const displayImage = imageError ? fallbackImage : field.image;
@@ -566,7 +606,7 @@ const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, 
           </span>
           <span className={`${statusColorClass} backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 uppercase tracking-tighter`}>
             <span className="material-symbols-outlined text-xs">{statusIcon}</span>
-            {field.status}
+            {translatedStatus}
           </span>
         </div>
         <div className="absolute top-4 right-4" ref={menuRef}>
@@ -580,7 +620,7 @@ const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, 
               className="w-10 h-10 bg-surface/90 backdrop-blur-md rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Field actions"
+              aria-label={t('savedFields', 'fieldActions', lang)}
             >
               <span className="material-symbols-outlined">more_vert</span>
             </button>
@@ -597,7 +637,7 @@ const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, 
                   className="w-full px-4 py-3 text-sm font-semibold text-on-surface flex items-center gap-2 hover:bg-surface-container-high transition-colors"
                 >
                   <span className="material-symbols-outlined text-base">edit</span>
-                  Edit field
+                  {t('savedFields', 'editField', lang)}
                 </button>
                 <button
                   type="button"
@@ -607,7 +647,7 @@ const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, 
                   className="w-full px-4 py-3 text-sm font-semibold text-error flex items-center gap-2 hover:bg-surface-container-high transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-base">delete</span>
-                  {isDeleting ? 'Deleting…' : 'Delete field'}
+                  {isDeleting ? t('savedFields', 'deleting', lang) : t('savedFields', 'deleteField', lang)}
                 </button>
               </div>
             )}
@@ -621,14 +661,14 @@ const FieldCard = ({ field, getSparklineHeights, getStatusIcon, getStatusColor, 
       {/* Content Section */}
       <div className="p-6">
         <h4 className="font-headline font-bold text-xl text-primary mb-1 truncate">{field.name}</h4>
-        <p className="text-xs text-on-surface-variant font-medium mb-1">Area: {field.area} HA</p>
-        <p className="text-xs text-on-surface-variant font-medium mb-4">NDVI Value: <span className="font-bold text-primary">{field.ndviValue}</span></p>
+        <p className="text-xs text-on-surface-variant font-medium mb-1">{t('savedFields', 'areaLabel', lang)}: {formatAcres(field.area)}</p>
+        <p className="text-xs text-on-surface-variant font-medium mb-4">{t('savedFields', 'cropHealthScore', lang)}: <span className="font-bold text-primary">{field.ndviValue}</span></p>
 
-        {/* NDVI Trend */}
+        {/* Crop Health Trend */}
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-end mb-1">
             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-              NDVI Trend
+              {t('savedFields', 'healthTrend', lang)}
             </span>
             <span
               className={`text-xs font-bold ${

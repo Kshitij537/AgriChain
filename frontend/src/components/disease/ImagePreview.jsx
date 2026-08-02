@@ -6,7 +6,7 @@ const ImagePreview = ({ file, previewUrl, onClear, disabled }) => {
   const fileSizeMB = file ? (file.size / (1024 * 1024)).toFixed(2) : null;
 
   return (
-    <div className="relative rounded-xl overflow-hidden border border-emerald-900/10 bg-slate-900 shadow-sm group">
+    <div className="group relative overflow-hidden rounded-[2rem] border border-outline-variant/10 bg-slate-900 shadow-sm">
       <img
         src={previewUrl}
         alt="Selected crop leaf preview"

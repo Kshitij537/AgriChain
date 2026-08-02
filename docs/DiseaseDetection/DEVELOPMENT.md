@@ -1,5 +1,10 @@
 # Disease Detection Development Checklist
 
+## ML Service Runtime Requirement
+- Use Python 3.11 or 3.12 for `ml-service`.
+- Python 3.13 can abort during TensorFlow native extension loading on macOS, so it should not be used for the FastAPI ML service venv.
+- Recommended setup: `python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
+
 ## Phase 1.1 — Scaffolding & Setup
 - [x] Create complete folder structures across services
 - [x] Set up empty file scaffolding for controllers, routes, middleware, and ML utilities

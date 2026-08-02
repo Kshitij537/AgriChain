@@ -23,21 +23,21 @@ const HeroSection = () => {
 
         {/* Headline */}
         <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tighter mb-6 leading-tight text-white">
-          Harvesting <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-secondary-container">Intelligence.</span>
+          Farm Smarter, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-secondary-container">Grow Better.</span>
         </h1>
 
         {/* Description */}
         <p className="text-lg text-white/60 mb-8 font-medium max-w-2xl mx-auto leading-relaxed">
-          A planetary-scale OS for the modern agronomist. Predictive analytics, satellite-driven insights, and autonomous fleet management in one seamless interface.
+          AgriChain uses satellite photos to check your crop health, warns you about diseases early, and gives you simple daily tips — all in one place.
         </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-6">
           <button className="px-8 py-3 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold text-base hover:scale-105 transition-transform shadow-xl shadow-emerald-700/20 hover:shadow-2xl hover:shadow-emerald-700/40">
-            Deploy Ecosystem
+            Get Started Free
           </button>
           <button className="px-8 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white font-bold text-base border border-white/10 backdrop-blur-md transition-all hover:scale-105">
-            View Live Network
+            See How It Works
           </button>
         </div>
       </div>

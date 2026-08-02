@@ -50,7 +50,7 @@ const savePrediction = async (predictionData) => {
     predictionData.disease,
     predictionData.severity,
     parseFloat(predictionData.confidence),
-    null, // image_url is NULL in V1
+    predictionData.imageUrl || null,
     predictionData.description || null,
     predictionData.recommendation
   ];
@@ -65,6 +65,7 @@ const savePrediction = async (predictionData) => {
       disease: row.disease_name,
       confidence: row.confidence_score,
       severity: row.severity_level,
+      imageUrl: row.image_url,
       description: row.description,
       recommendation: row.treatment_recommendation,
       createdAt: row.created_at
@@ -87,6 +88,7 @@ const getHistoryByFarm = async (farmId) => {
       disease_name,
       confidence_score,
       severity_level,
+      image_url,
       description,
       treatment_recommendation,
       created_at
@@ -104,6 +106,7 @@ const getHistoryByFarm = async (farmId) => {
       disease: row.disease_name,
       confidence: row.confidence_score,
       severity: row.severity_level,
+      imageUrl: row.image_url,
       description: row.description,
       recommendation: row.treatment_recommendation,
       createdAt: row.created_at

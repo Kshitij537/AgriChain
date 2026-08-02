@@ -129,7 +129,7 @@ const DashboardSection = () => {
                       <span className="material-symbols-outlined text-sm">public</span>
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">2.4B Ha</p>
+                      <p className="text-xs font-bold text-white">5.9B ac</p>
                       <p className="text-[9px] text-white/40">Coverage</p>
                     </div>
                   </div>

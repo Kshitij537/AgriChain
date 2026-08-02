@@ -30,7 +30,7 @@ const ImageUploader = ({ onFileSelect, disabled }) => {
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onClick={() => !disabled && fileInputRef.current?.click()}
-      className={`border-2 border-dashed border-emerald-900/20 hover:border-emerald-600 rounded-xl p-8 text-center transition-all cursor-pointer bg-emerald-50/30 hover:bg-emerald-50/60 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`cursor-pointer rounded-[2rem] border-2 border-dashed border-primary/20 bg-gradient-to-br from-surface via-surface-container to-primary/5 p-8 text-center transition-all hover:border-primary hover:bg-primary/5 ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
       <input
         type="file"
@@ -40,16 +40,16 @@ const ImageUploader = ({ onFileSelect, disabled }) => {
         className="hidden"
         id="disease-image-input"
       />
-      <span className="material-symbols-outlined text-5xl text-emerald-700 block mb-3">
+      <span className="material-symbols-outlined mb-3 block text-5xl text-primary">
         add_a_photo
       </span>
-      <p className="text-emerald-950 font-bold text-lg mb-1">
+      <p className="mb-1 text-lg font-bold text-primary">
         Click to upload or drag and drop
       </p>
-      <p className="text-sm text-slate-600 mb-3">
+      <p className="mb-3 text-sm text-on-surface-variant">
         Supports JPEG, PNG, or WebP crop leaf images (up to 10 MB)
       </p>
-      <span className="inline-block bg-emerald-800 text-white text-xs px-4 py-2 rounded-lg font-semibold shadow-sm">
+      <span className="inline-block rounded-xl bg-gradient-to-r from-primary to-secondary px-4 py-2 text-xs font-semibold text-white shadow-sm">
         Select Leaf Image
       </span>
     </div>

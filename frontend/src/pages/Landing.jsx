@@ -11,7 +11,7 @@ import Footer from '../components/Footer';
 const Landing = () => {
   return (
     <div className="min-h-screen bg-black overflow-x-hidden">
-      <style jsx global>{`
+      <style>{`
         @keyframes fadeInUp {
           from {
             opacity: 0;

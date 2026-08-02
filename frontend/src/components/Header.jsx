@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import LanguageSelector from './LanguageSelector';
+import { t, getCurrentLanguage } from '../utils/translations';
 
 const Header = ({ user, searchPlaceholder = "Search fields, diseases, or market trends..." }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [lang, setLang] = useState(getCurrentLanguage());
+
+  useEffect(() => {
+    const handleLanguageChange = () => setLang(getCurrentLanguage());
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
+
+  const resolvedSearchPlaceholder =
+    searchPlaceholder === "Search fields, diseases, or market trends..."
+      ? t('common', 'searchFieldsPlaceholder', lang)
+      : searchPlaceholder;
 
   return (
     <header className="fixed top-0 left-72 h-20 px-8 w-[calc(100%-18rem)] flex justify-between items-center bg-surface/80 backdrop-blur-xl z-40 border-b border-outline-variant/10">
@@ -10,7 +24,7 @@ const Header = ({ user, searchPlaceholder = "Search fields, diseases, or market 
         <span className="material-symbols-outlined text-on-surface-variant mr-2">search</span>
         <input
           className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-on-surface-variant/60 font-body"
-          placeholder={searchPlaceholder}
+          placeholder={resolvedSearchPlaceholder}
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -19,6 +33,9 @@ const Header = ({ user, searchPlaceholder = "Search fields, diseases, or market 
 
       {/* Right Section */}
       <div className="flex items-center gap-6">
+        {/* Language Selector */}
+        <LanguageSelector />
+        
         {/* Icons */}
         <div className="flex items-center gap-4 text-on-surface-variant">
           <button className="p-2 hover:opacity-80 relative font-body transition-opacity">
@@ -33,9 +50,9 @@ const Header = ({ user, searchPlaceholder = "Search fields, diseases, or market 
         {/* User Profile */}
         <div className="flex items-center gap-3 pl-6 border-l border-outline-variant/20">
           <div className="text-right">
-            <p className="text-sm font-headline font-semibold text-primary">{user?.fullName || 'Farmer'}</p>
+            <p className="text-sm font-headline font-semibold text-primary">{user?.fullName || t('common', 'farmer', lang)}</p>
             <p className="text-xs text-on-surface-variant uppercase tracking-wider font-body">
-              {user?.role || 'Precision Farmer'}
+              {user?.role || t('common', 'precisionFarmer', lang)}
             </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-headline font-bold">

@@ -29,9 +29,17 @@ router.post(
 // GET /api/disease/farm/:farmId
 router.get(
   '/farm/:farmId',
-  authMiddleware,
+  optionalAuth,
   validateFarmIdParam,
   diseaseController.getHistoryByFarm
 );
 
+// POST /api/disease/combined-advisory or /api/diseases/combined-advisory
+router.post(
+  '/combined-advisory',
+  optionalAuth,
+  diseaseController.getCombinedAdvisory
+);
+
 module.exports = router;
+
