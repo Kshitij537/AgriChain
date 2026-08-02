@@ -12,6 +12,15 @@ CREATE TABLE IF NOT EXISTS diseases (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Backward-compatible migration when table already exists
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS severity_level VARCHAR(50);
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS confidence_score FLOAT;
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS treatment_recommendation TEXT;
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS detected_date TIMESTAMP;
+ALTER TABLE diseases ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
 -- Create indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_diseases_farm_id ON diseases(farm_id);
 CREATE INDEX IF NOT EXISTS idx_diseases_detected_date ON diseases(detected_date);

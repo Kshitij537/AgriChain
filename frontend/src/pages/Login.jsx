@@ -175,7 +175,7 @@ const Login = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="agronomist@agrichain.com"
+                  placeholder="your@email.com"
                   className="w-full pl-12 pr-4 py-3.5 bg-surface-container-highest/40 backdrop-blur-md rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 border-none transition-all placeholder:text-on-surface-variant/40 text-on-surface font-medium"
                   required
                 />

@@ -4,43 +4,43 @@ const EcosystemSection = () => {
   const features = [
     {
       icon: 'satellite_alt',
-      title: 'Satellite NDVI',
-      description: 'Multi-spectral imagery analysis providing real-time field health metrics and biomass density tracking from orbit.',
+      title: 'Satellite Crop Scan',
+      description: 'See your field\'s crop health from space — updated regularly so you always know how your crops are doing.',
       color: 'text-emerald-400',
       iconBg: 'bg-emerald-500/10',
     },
     {
       icon: 'biotech',
-      title: 'AI Disease Detection',
-      description: 'Sub-pixel scanning algorithms identifying rust, blight, and pest infestations before they become visible to the human eye.',
+      title: 'Disease Detection',
+      description: 'Upload a photo of your crop and get instant alerts for diseases like rust, blight, or pest damage — before it spreads.',
       color: 'text-secondary-container',
       iconBg: 'bg-secondary-container/10',
     },
     {
       icon: 'warning',
-      title: 'Spoilage Risk',
-      description: 'Predictive post-harvest analytics utilizing humidity and microbial data to minimize waste in storage silos.',
+      title: 'Spoilage Warning',
+      description: 'Know when stored crops are at risk of spoiling. Get alerts based on humidity and temperature so you can act in time.',
       color: 'text-emerald-400',
       iconBg: 'bg-emerald-500/10',
     },
     {
       icon: 'query_stats',
-      title: 'Market Insights',
-      description: 'Global supply-chain tracking and pricing volatility forecasting integrated directly into your yield targets.',
+      title: 'Market Prices',
+      description: 'Check today\'s crop prices and trends so you can sell at the right time and get the best return for your harvest.',
       color: 'text-blue-400',
       iconBg: 'bg-blue-500/10',
     },
     {
       icon: 'auto_awesome',
-      title: 'Smart Recs',
-      description: 'Automated daily action items powered by multi-variate weather and soil models for maximum efficiency.',
+      title: 'Daily Farming Tips',
+      description: 'Get simple, actionable advice every day — when to water, fertilise, or spray — based on your field\'s condition.',
       color: 'text-purple-400',
       iconBg: 'bg-purple-500/10',
     },
     {
       icon: 'agriculture',
-      title: 'Fleet Optimization',
-      description: 'Precision pathfinding for autonomous tractors and drones, reducing fuel consumption by up to 28% per hectare.',
+      title: 'Equipment Planning',
+      description: 'Plan when and where to use your tractors and equipment to save fuel and cover your fields more efficiently.',
       color: 'text-amber-400',
       iconBg: 'bg-amber-500/10',
     },
@@ -51,7 +51,7 @@ const EcosystemSection = () => {
       {/* Section Header */}
       <div className="mb-12 animate-fade-in-up">
         <h2 className="text-2xl md:text-3xl font-headline font-bold tracking-tight mb-2 text-white">
-          Ecosystem Intelligence
+          Everything You Need on Your Farm
         </h2>
         <div className="h-1 w-24 bg-gradient-to-r from-emerald-400 to-secondary"></div>
       </div>

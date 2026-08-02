@@ -1,12 +1,9 @@
 const ndviService = require('../services/ndviService');
-const crypto = require('crypto');
 const ndviStorage = require('../services/ndviStorageService');
+const recommendationService = require('../services/recommendationService');
+const weatherService = require('../services/weatherService');
 const { computeTrendFromSeries, buildDropAlert } = require('../utils/ndviUtils');
-
-const computeFieldId = (coordinates) => {
-  const hash = crypto.createHash('sha256').update(JSON.stringify(coordinates)).digest('hex').slice(0, 16);
-  return `field_${hash}`;
-};
+const { computeFieldId } = require('../utils/fieldUtils');
 
 /**
  * NDVI Controller - Handles NDVI calculation requests
@@ -18,7 +15,7 @@ const computeFieldId = (coordinates) => {
  */
 const calculateNDVI = async (req, res) => {
   try {
-    const { coordinates, fieldId: inputFieldId } = req.body;
+    const { coordinates, fieldId: inputFieldId, farmId, includePixelGrid } = req.body;
 
     // Validate request body
     if (!coordinates) {
@@ -30,8 +27,12 @@ const calculateNDVI = async (req, res) => {
 
     console.log('[NDVI Controller] Received NDVI calculation request');
 
-    // Calculate NDVI
-    const result = await ndviService.calculateNDVI(coordinates);
+    // Calculate NDVI with optional pixel grid
+    const result = await ndviService.calculateNDVI(coordinates, includePixelGrid || false);
+
+    if (result && result.success === false) {
+      return res.status(200).json(result);
+    }
 
     // Persist result + generate alert (if we can)
     const fieldId = inputFieldId || computeFieldId(coordinates);
@@ -50,6 +51,18 @@ const calculateNDVI = async (req, res) => {
       source: 'satellite-service',
     });
 
+    const farmIdNum = Number(farmId);
+    if (farmId && Number.isInteger(farmIdNum) && farmIdNum > 0) {
+      await ndviStorage.saveFarmNdviSnapshot({
+        farmId: farmIdNum,
+        ndviValue: result.ndvi,
+        healthStatus: result.health,
+        imageDate: result.imageDate || new Date().toISOString(),
+        imageUrl: null,
+        satelliteSource: 'satellite-service',
+      });
+    }
+
     const alert = buildDropAlert({
       previous: previous ? Number(previous.ndvi_value) : null,
       current: Number(result.ndvi),
@@ -66,12 +79,26 @@ const calculateNDVI = async (req, res) => {
   } catch (error) {
     console.error('[NDVI Controller] Error:', error.message);
 
-    const statusCode = error.message.includes('not found') ? 404 : 
-                      error.message.includes('required') ? 400 : 500;
+    const errorMessage = error.message || 'Failed to calculate NDVI';
+    const lower = errorMessage.toLowerCase();
+
+    const statusCode = lower.includes('required')
+      ? 400
+      : lower.includes('invalid')
+      ? 400
+      : lower.includes('no valid ndvi data')
+      ? 422
+      : lower.includes('no satellite images')
+      ? 404
+      : lower.includes('unable to calculate ndvi')
+      ? 422
+      : lower.includes('not available')
+      ? 503
+      : 500;
 
     res.status(statusCode).json({
       success: false,
-      error: error.message || 'Failed to calculate NDVI'
+      error: errorMessage
     });
   }
 };
@@ -107,19 +134,23 @@ const getTimeSeries = async (req, res) => {
 
     // Persist each point (upsert by field_id + captured_date)
     if (Array.isArray(seriesResult.data)) {
-      for (const point of seriesResult.data) {
-        if (!point?.date || typeof point?.ndvi !== 'number') continue;
-        const classification = ndviService.getHealthClassification(point.ndvi);
-        await ndviStorage.upsertMeasurement({
-          fieldId,
-          capturedDate: point.date,
-          ndviValue: point.ndvi,
-          healthStatus: classification.health,
-          imageDate: point.date,
-          cloudCoverage: null,
-          source: 'satellite-service-timeseries',
-        });
-      }
+      const validPoints = seriesResult.data.filter(
+        (point) => point?.date && typeof point?.ndvi === 'number'
+      );
+      await ndviStorage.bulkUpsertMeasurements(
+        validPoints.map((point) => {
+          const classification = ndviService.getHealthClassification(point.ndvi);
+          return {
+            fieldId,
+            capturedDate: point.date,
+            ndviValue: point.ndvi,
+            healthStatus: classification.health,
+            imageDate: point.date,
+            cloudCoverage: null,
+            source: 'satellite-service-timeseries',
+          };
+        })
+      );
     }
 
     res.status(200).json({
@@ -197,8 +228,89 @@ const getHealthStatus = (req, res) => {
   }
 };
 
+/**
+ * POST /api/ndvi/advice
+ * Generate AI farming advice using crop + NDVI context
+ */
+const getFieldAdvice = async (req, res) => {
+  try {
+    const {
+      cropType,
+      ndvi,
+      health,
+      status,
+      cloudCoverage,
+      imageDate,
+      trend7d,
+      trend7dAbs,
+      trend30d,
+      trend30dAbs,
+      latitude,
+      longitude,
+      currentWeather,
+      weatherForecast,
+      language = 'en',
+    } = req.body || {};
+
+    if (ndvi == null && !health && !cropType) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one of cropType, ndvi, or health is required',
+      });
+    }
+
+    let resolvedCurrentWeather = currentWeather || null;
+    let resolvedWeatherForecast = weatherForecast || null;
+
+    if ((!resolvedCurrentWeather || !resolvedWeatherForecast) && latitude != null && longitude != null) {
+      try {
+        const [current, forecast] = await Promise.all([
+          weatherService.getCurrentWeather(Number(latitude), Number(longitude)),
+          weatherService.getWeatherForecast(Number(latitude), Number(longitude), 3),
+        ]);
+        resolvedCurrentWeather = resolvedCurrentWeather || current;
+        resolvedWeatherForecast = resolvedWeatherForecast || forecast;
+      } catch (weatherError) {
+        console.warn('[NDVI Controller] Weather context unavailable for advice:', weatherError.message);
+      }
+    }
+
+    const advice = await recommendationService.generateFieldAdvice({
+      cropType,
+      ndvi: typeof ndvi === 'number' ? ndvi : Number(ndvi),
+      health,
+      status,
+      cloudCoverage: cloudCoverage == null ? null : Number(cloudCoverage),
+      imageDate,
+      trend7d: trend7d == null ? null : Number(trend7d),
+      trend7dAbs: trend7dAbs == null ? null : Number(trend7dAbs),
+      trend30d: trend30d == null ? null : Number(trend30d),
+      trend30dAbs: trend30dAbs == null ? null : Number(trend30dAbs),
+      currentWeather: resolvedCurrentWeather,
+      weatherForecast: resolvedWeatherForecast,
+      language,
+    });
+
+    return res.status(200).json({
+      success: true,
+      advice,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.warn('[NDVI Controller] Advice warning:', error.message);
+    const fallbackContext = req.body || {};
+    return res.status(200).json({
+      success: true,
+      advice: recommendationService.normalizeAdvice(null, fallbackContext.language || 'en', fallbackContext),
+      generatedAt: new Date().toISOString(),
+    });
+  }
+};
+
+
 module.exports = {
   calculateNDVI,
+  getFieldAdvice,
   getHealthStatus,
   getTimeSeries,
   getHistory

@@ -75,7 +75,8 @@ def calculate_ndvi():
     
     Expected JSON:
     {
-        "coordinates": [[lon, lat], [lon, lat], ..., [lon, lat]]
+        "coordinates": [[lon, lat], [lon, lat], ..., [lon, lat]],
+        "includePixelGrid": true/false (optional, for heatmap visualization)
     }
     """
     try:
@@ -88,6 +89,7 @@ def calculate_ndvi():
             }), 400
         
         coordinates = data['coordinates']
+        include_pixel_grid = data.get('includePixelGrid', False)
         
         # Validate coordinates
         is_valid, error = validate_coordinates(coordinates)
@@ -97,13 +99,14 @@ def calculate_ndvi():
                 'error': error
             }), 400
         
-        print(f"[NDVI Handler] Calculating NDVI for coordinates: {len(coordinates)} points")
+        print(f"[NDVI Handler] Calculating NDVI for coordinates: {len(coordinates)} points (pixel grid: {include_pixel_grid})")
         
         # Calculate NDVI
-        result = calculate_ndvi_for_region(coordinates)
+        result = calculate_ndvi_for_region(coordinates, include_pixel_grid=include_pixel_grid)
         
         if result['success']:
-            print(f"[NDVI Handler] ✓ Calculation successful. NDVI: {result['ndvi']}")
+            pixel_count = len(result.get('pixelGrid', [])) if include_pixel_grid else 0
+            print(f"[NDVI Handler] ✓ Calculation successful. NDVI: {result['ndvi']}, Pixels: {pixel_count}")
             return jsonify(result), 200
         else:
             print(f"[NDVI Handler] ✗ Calculation failed: {result.get('error')}")

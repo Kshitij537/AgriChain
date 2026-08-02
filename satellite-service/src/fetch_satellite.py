@@ -24,8 +24,8 @@ def get_available_images(coordinates, days=30):
         end_date = ee.Date(datetime.now())
         start_date = end_date.advance(-days, 'day')
         
-        # Get Sentinel-2 images
-        sentinel2 = ee.ImageCollection('COPERNICUS/S2') \
+        # Get Sentinel-2 images (Surface Reflectance Harmonized)
+        sentinel2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
             .filterBounds(polygon) \
             .filterDate(start_date, end_date) \
             .sort('CLOUDY_PIXEL_PERCENTAGE')
@@ -79,8 +79,8 @@ def get_satellite_preview(coordinates):
     try:
         polygon = ee.Geometry.Polygon(coordinates)
         
-        # Get recent Sentinel-2 image
-        sentinel2 = ee.ImageCollection('COPERNICUS/S2') \
+        # Get recent Sentinel-2 image (Surface Reflectance Harmonized)
+        sentinel2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
             .filterBounds(polygon) \
             .filterDate(
                 ee.Date(datetime.now()).advance(-30, 'day'),
@@ -148,7 +148,7 @@ def get_mosaic_image(coordinates, days=30):
         end_date = ee.Date(datetime.now())
         start_date = end_date.advance(-days, 'day')
         
-        sentinel2 = ee.ImageCollection('COPERNICUS/S2') \
+        sentinel2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') \
             .filterBounds(polygon) \
             .filterDate(start_date, end_date) \
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))

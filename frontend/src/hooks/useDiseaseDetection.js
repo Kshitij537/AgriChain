@@ -31,36 +31,28 @@ const useDiseaseDetection = () => {
    * @param {number|string} farmId 
    */
   const loadHistory = useCallback(async (farmId) => {
-    if (!farmId) {
-      setHistory([]);
-      setHistoryError(null);
-      return;
-    }
+    const targetFarmId = farmId || 1;
 
     setHistoryLoading(true);
     setHistoryError(null);
 
     try {
-      const records = await getHistoryByFarm(farmId);
+      const records = await getHistoryByFarm(targetFarmId);
       setHistory(records);
     } catch (err) {
       console.warn('[useDiseaseDetection] History load error:', err.message);
       setHistoryError({
         code: 'HISTORY_LOAD_ERROR',
-        message: 'Failed to load detection history for this farm. Click to retry.'
+        message: 'Failed to load detection history. Click to retry.'
       });
     } finally {
       setHistoryLoading(false);
     }
   }, []);
 
-  // Automatically load history when selectedFarmId changes
+  // Automatically load history when selectedFarmId changes (or default farm 1)
   useEffect(() => {
-    if (selectedFarmId) {
-      loadHistory(selectedFarmId);
-    } else {
-      setHistory([]);
-    }
+    loadHistory(selectedFarmId || 1);
   }, [selectedFarmId, loadHistory]);
 
   /**
@@ -128,10 +120,9 @@ const useDiseaseDetection = () => {
       const data = await detectDisease(file, activeFarmId);
       setPrediction(data);
 
-      // Refresh history if detection was persisted with a farmId
-      if (activeFarmId && data.record) {
-        loadHistory(activeFarmId);
-      }
+      // Refresh history immediately for active farm context
+      const targetFarmId = activeFarmId || selectedFarmId || 1;
+      loadHistory(targetFarmId);
     } catch (err) {
       console.error('[useDiseaseDetection] Error:', err.message);
       

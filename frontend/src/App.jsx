@@ -9,6 +9,7 @@ import FieldAnalytics from './pages/FieldAnalytics';
 import DiseaseDetection from './pages/DiseaseDetection';
 import SpoilageRisk from './pages/SpoilageRisk';
 import Market from './pages/Market';
+import Weather from './pages/Weather';
 import FarmView from './pages/FarmView';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
@@ -29,6 +30,7 @@ function App() {
         <Route path="/disease-detection" element={<DiseaseDetection />} />
         <Route path="/spoilage-risk" element={<SpoilageRisk />} />
         <Route path="/market" element={<Market />} />
+        <Route path="/weather" element={<Weather />} />
         <Route path="/farm-view" element={<FarmView />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />

@@ -15,6 +15,10 @@ router.post('/calculate', ndviController.calculateNDVI);
 // POST /api/ndvi/timeseries
 router.post('/timeseries', ndviController.getTimeSeries);
 
+// Generate AI field advice from NDVI + crop context
+// POST /api/ndvi/advice
+router.post('/advice', ndviController.getFieldAdvice);
+
 // Get stored NDVI history (requires fieldId query param)
 // GET /api/ndvi/history?fieldId=...&days=30
 router.get('/history', ndviController.getHistory);

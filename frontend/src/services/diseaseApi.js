@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
+/** Returns Authorization header if a JWT token is stored in localStorage */
+const getAuthHeader = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 /**
  * Sends image file to Express Backend endpoint POST /api/diseases/detect?top_k=3
  * @param {File} file - Leaf image File object
@@ -27,7 +33,8 @@ export const detectDisease = async (file, farmId = null, topK = 3) => {
 
   try {
     const response = await axios.post(url, formData, {
-      timeout: 15000 // 15 seconds
+      timeout: 30000, // 30 seconds (ML inference can be slow)
+      headers: { ...getAuthHeader() }
     });
 
     if (response.data && response.data.success && response.data.data) {
@@ -69,7 +76,7 @@ export const detectDisease = async (file, farmId = null, topK = 3) => {
 export const getHistoryByFarm = async (farmId) => {
   const url = `${API_BASE_URL}/api/diseases/farm/${farmId}`;
   try {
-    const response = await axios.get(url);
+    const response = await axios.get(url, { headers: { ...getAuthHeader() } });
     if (response.data && response.data.success && response.data.data) {
       return response.data.data.history || [];
     }
@@ -79,3 +86,25 @@ export const getHistoryByFarm = async (farmId) => {
     return [];
   }
 };
+
+/**
+ * Fetches multi-source integrated Smart Field Advisory
+ */
+export const fetchCombinedAdvisory = async ({ diseaseData, farmData, ndviData, weatherData, language = 'en' }) => {
+  const url = `${API_BASE_URL}/api/diseases/combined-advisory`;
+  try {
+    const response = await axios.post(
+      url,
+      { diseaseData, farmData, ndviData, weatherData, language },
+      { headers: { ...getAuthHeader() }, timeout: 25000 }
+    );
+    if (response.data && response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error) {
+    console.warn('[Disease API] Failed to fetch combined advisory:', error.message);
+    return null;
+  }
+};
+

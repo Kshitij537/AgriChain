@@ -24,6 +24,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static uploaded files (leaf images, etc.)
+const path = require('path');
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, '../uploads/diseases');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -36,6 +45,8 @@ app.use('/api/farms', require('./routes/farmRoutes'));
 app.use('/api/ndvi', require('./routes/ndviRoutes'));
 app.use('/api/disease', require('./routes/diseaseRoutes'));
 app.use('/api/diseases', require('./routes/diseaseRoutes'));
+app.use('/api/weather', require('./routes/weatherRoutes'));
+// Note: marketRoutes, recommendationRoutes, spoilageRoutes are not yet implemented
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
