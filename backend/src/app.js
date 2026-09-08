@@ -46,7 +46,8 @@ app.use('/api/ndvi', require('./routes/ndviRoutes'));
 app.use('/api/disease', require('./routes/diseaseRoutes'));
 app.use('/api/diseases', require('./routes/diseaseRoutes'));
 app.use('/api/weather', require('./routes/weatherRoutes'));
-// Note: marketRoutes, recommendationRoutes, spoilageRoutes are not yet implemented
+app.use('/api/spoilage', require('./routes/spoilageRoutes'));
+// Note: marketRoutes and recommendationRoutes are not yet implemented
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

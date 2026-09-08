@@ -750,8 +750,132 @@ const generateCombinedFieldAdvisory = async (context) => {
   return promise;
 };
 
+// Spoilage advice is supplementary text on a page whose numbers are already
+// computed locally, so it gets a much shorter deadline than field advisories.
+const SPOILAGE_ADVICE_TIMEOUT_MS = Number(process.env.SPOILAGE_ADVICE_TIMEOUT_MS) || 8000;
+
+/**
+ * Plain-language spoilage advice for a farmer, in 2-4 short sentences.
+ * Falls back to a deterministic summary whenever Gemini is unavailable, so the
+ * page always renders advice.
+ */
+const buildSpoilageFallbackAdvice = (assessment) => {
+  const { risk, crop, storage, transport, factors } = assessment;
+  const reasons = factors.slice(0, 2).map((f) => f.label.toLowerCase());
+  const reasonText = reasons.length > 0 ? ` mainly because of ${reasons.join(' and ')}` : '';
+
+  const lines = [];
+  if (risk.level === 'high') {
+    lines.push(`Your ${crop.label.toLowerCase()} is at high spoilage risk${reasonText}.`);
+    lines.push('Try to sell within the next day or two.');
+  } else if (risk.level === 'moderate') {
+    lines.push(`Your ${crop.label.toLowerCase()} is holding up, but risk is rising${reasonText}.`);
+    lines.push(`Plan to sell within about ${assessment.shelfLife.safeDays <= 1 ? 'a day' : assessment.shelfLife.safeDays + ' days'}.`);
+  } else {
+    lines.push(`Your ${crop.label.toLowerCase()} is in good condition in ${storage.label.toLowerCase()}.`);
+    lines.push(`You have roughly ${assessment.shelfLife.safeDays} days before quality starts dropping.`);
+  }
+
+  if (transport.travelHours > 3) {
+    lines.push(`The ${transport.travelHours}-hour journey to market adds to the risk, so travel early in the morning.`);
+  }
+  if (assessment.recommendations.length > 0) {
+    lines.push(assessment.recommendations[0].detail);
+  }
+
+  return {
+    advice: lines.join(' '),
+    source: 'heuristic',
+    language: 'en'
+  };
+};
+
+const buildSpoilagePrompt = (assessment, language = 'en') => {
+  const langName = languageNames[language] || 'English';
+  const factorList = assessment.factors.map((f) => `- ${f.label}: ${f.detail}`).join('\n') || '- No major risk factors';
+
+  return `You are advising a small farmer in India about post-harvest spoilage.
+Write in ${langName}, in simple words a farmer with basic schooling can read.
+
+Crop: ${assessment.crop.label}
+Quantity: ${assessment.crop.quantityKg} kg
+Harvested: ${assessment.crop.daysSinceHarvest} days ago
+Storage: ${assessment.storage.label} at ${assessment.storage.temperatureC}°C and ${assessment.storage.humidity}% humidity
+Journey to market: ${assessment.transport.distanceKm} km, about ${assessment.transport.travelHours} hours
+Spoilage risk: ${assessment.risk.score}% (${assessment.risk.label})
+Estimated safe window: ${assessment.shelfLife.safeDays} days
+
+Risk factors:
+${factorList}
+
+Respond ONLY with JSON in this exact shape:
+{"advice": "2 to 4 short sentences telling the farmer why the risk is what it is and what to do about it"}
+
+Rules:
+- Do not invent prices or market names.
+- Do not use scientific terms, percentages, or formulas.
+- Be direct and practical. Mention the single most useful action.`;
+};
+
+const generateSpoilageAdvice = async (assessment, language = 'en') => {
+  if (!assessment) return { advice: '', source: 'none', language };
+
+  if (!GEMINI_API_KEY) {
+    console.warn('[Recommendation Service] GEMINI_API_KEY not configured. Using spoilage fallback advice.');
+    return { ...buildSpoilageFallbackAdvice(assessment), language };
+  }
+
+  const cacheKey = `spoilage:${language}:${assessment.crop.key}:${assessment.risk.score}:${assessment.storage.key}:${Math.round(assessment.storage.temperatureC)}:${Math.round(assessment.storage.humidity)}:${Math.round(assessment.transport.travelHours)}`;
+
+  const cached = _getCached(cacheKey);
+  if (cached) {
+    console.log(`[Recommendation Service] ✅ Serving spoilage advice from cache (${language}).`);
+    return cached;
+  }
+  if (_inflight.has(cacheKey)) {
+    console.log('[Recommendation Service] ⏳ Awaiting in-flight spoilage advice request (deduped).');
+    return _inflight.get(cacheKey);
+  }
+
+  const url = `${GEMINI_API_URL}/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+  const prompt = buildSpoilagePrompt(assessment, language);
+
+  const promise = axios.post(
+    url,
+    // maxOutputTokens must cover the model's internal reasoning as well as the
+    // reply; a tight budget here comes back as a half-finished sentence.
+    { contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, responseMimeType: 'application/json', maxOutputTokens: 2048 } },
+    // Short deadline: the risk assessment itself is instant and deterministic, so
+    // the page must not stall waiting on optional AI prose. Falls back on timeout.
+    { timeout: SPOILAGE_ADVICE_TIMEOUT_MS, headers: { 'Content-Type': 'application/json' } }
+  ).then((response) => {
+    const text = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const parsed = text ? safeParseJSON(text) : null;
+    const advice = parsed && typeof parsed.advice === 'string' && parsed.advice.trim()
+      ? parsed.advice.trim()
+      : buildSpoilageFallbackAdvice(assessment).advice;
+
+    const result = { advice, source: parsed?.advice ? 'gemini' : 'heuristic', language };
+    _setCache(cacheKey, result);
+    return result;
+  }).catch((error) => {
+    if (error?.response?.status === 429) {
+      console.warn('[Recommendation Service] ⚠️  Gemini rate limit (429). Using spoilage fallback advice.');
+    } else {
+      console.warn('[Recommendation Service] Gemini spoilage advice error:', error.message);
+    }
+    return { ...buildSpoilageFallbackAdvice(assessment), language };
+  }).finally(() => {
+    _inflight.delete(cacheKey);
+  });
+
+  _inflight.set(cacheKey, promise);
+  return promise;
+};
+
 module.exports = {
   generateFieldAdvice,
   generateCombinedFieldAdvisory,
+  generateSpoilageAdvice,
   normalizeAdvice,
 };
