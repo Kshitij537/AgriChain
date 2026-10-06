@@ -34,6 +34,10 @@ exports.register = async (req, res) => {
 
     const user = result.rows[0];
 
+    // Get user roles
+    const roleService = require('../services/roleService');
+    const roles = await roleService.getRoles(user.id);
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
@@ -46,7 +50,8 @@ exports.register = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        fullName: user.full_name
+        fullName: user.full_name,
+        roles: roles
       },
       token
     });
@@ -80,6 +85,10 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Get user roles
+    const roleService = require('../services/roleService');
+    const roles = await roleService.getRoles(user.id);
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email },
@@ -92,7 +101,8 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        fullName: user.full_name
+        fullName: user.full_name,
+        roles: roles
       },
       token
     });

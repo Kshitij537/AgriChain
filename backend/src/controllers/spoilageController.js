@@ -138,6 +138,106 @@ const assessRisk = async (req, res) => {
 };
 
 /**
+ * POST /api/spoilage/predict
+ *
+ * The compact contract from the project specification: crop + conditions in,
+ * risk + loss + monetary value + contributing factors out.
+ *
+ * This is a thin projection of the same RULE_BASED_BASELINE engine that backs
+ * /assess - not a second model. /assess returns the full assessment (timeline,
+ * recommendations, shelf-life factors, AI advice) for the SpoilageRisk page;
+ * /predict returns just the numbers the market engine and an API consumer need.
+ * Both report the engine and model version, and neither is machine learning.
+ *
+ * Body: { crop|cropType, quantityKg, harvestDate, storageType, temperatureC,
+ *         humidity, distanceKm, travelHours, transportMode, pricePerQuintal,
+ *         farmId }
+ */
+const predictSpoilage = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const cropType = body.crop || body.cropType;
+
+    if (!cropType) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CROP_REQUIRED', message: 'crop is required' }
+      });
+    }
+
+    const quantityKg = Number(body.quantityKg);
+    if (!Number.isFinite(quantityKg) || quantityKg <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'QUANTITY_INVALID', message: 'quantityKg must be a positive number' }
+      });
+    }
+
+    // Fill ambient conditions from the farm's weather when not supplied, so the
+    // farmer never has to type a temperature.
+    let temperatureC = body.temperatureC;
+    let humidity = body.humidity;
+    let conditionsSource = temperatureC != null && humidity != null ? 'user-input' : 'default';
+
+    const farmId = body.farmId ? parseInt(body.farmId, 10) : null;
+    if ((temperatureC == null || humidity == null) && farmId) {
+      const coords = await getFarmCoordinates(farmId);
+      if (coords) {
+        const ambient = await fetchAmbientConditions(coords.lat, coords.lon);
+        if (ambient) {
+          if (temperatureC == null && ambient.temperatureC != null) temperatureC = ambient.temperatureC;
+          if (humidity == null && ambient.humidity != null) humidity = ambient.humidity;
+          conditionsSource = 'weather-api';
+        }
+      }
+    }
+
+    const estimate = spoilageService.estimateSpoilageLossForMarket(
+      {
+        cropType,
+        quantityKg,
+        harvestDate: body.harvestDate,
+        storageType: body.storageType || 'open',
+        temperatureC,
+        humidity,
+        transportMode: body.transportMode
+      },
+      {
+        name: body.destination || null,
+        distanceKm: body.distanceKm,
+        travelHours: body.travelHours,
+        pricePerQuintal: body.pricePerQuintal
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        risk: estimate.riskLevel,
+        riskScore: estimate.riskScore,
+        estimatedLossPercent: estimate.estimatedLossPercent,
+        estimatedLossKg: estimate.estimatedLossKg,
+        // null unless a price was supplied - a loss is never valued at a guess.
+        estimatedLossValue: estimate.estimatedLossValue,
+        saleableQuantityKg: estimate.saleableQuantityKg,
+        safeDays: estimate.safeDays,
+        effectiveShelfLifeDays: estimate.effectiveShelfLifeDays,
+        factors: estimate.factors,
+        factorDetails: estimate.factorDetails,
+        conditionsSource,
+        engine: estimate.engine,
+        modelVersion: estimate.modelVersion,
+        isMachineLearning: estimate.isMachineLearning
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Spoilage Controller] Error predicting spoilage:', error.message);
+    return handleControllerError(res, error);
+  }
+};
+
+/**
  * GET /api/spoilage/options
  * Supported crops and storage types for populating the form.
  */
@@ -212,5 +312,6 @@ module.exports = {
   assessRisk,
   getOptions,
   getHistory,
-  healthCheck
+  healthCheck,
+  predictSpoilage
 };

@@ -66,10 +66,41 @@ const startupMigrations = [
   "CREATE INDEX IF NOT EXISTS idx_spoilage_assessment_date ON spoilage(assessment_date)",
 ];
 
+/**
+ * Applies the market intelligence schema from database/schemas/market.sql.
+ *
+ * That file is the single source of truth for the market tables and is fully
+ * idempotent (every statement is IF NOT EXISTS), so running it on each boot is
+ * safe and keeps a fresh clone working without a manual psql step.
+ */
+const runMarketSchema = async () => {
+  const fsModule = require('fs');
+  const pathModule = require('path');
+
+  // Applied in order. Both files are fully idempotent (every statement is
+  // IF NOT EXISTS), so running them on each boot is safe and keeps a fresh clone
+  // working without a manual psql step. marketplace.sql comes second because its
+  // foreign keys reference users and farms, which the startup migrations above
+  // have already ensured.
+  // transport_rates.sql comes after market.sql because it ALTERs transport_config,
+  // which market.sql creates.
+  const schemaFiles = ['market.sql', 'marketplace.sql', 'transport_rates.sql', 'market_providers.sql'];
+
+  for (const file of schemaFiles) {
+    const schemaPath = pathModule.join(__dirname, '../../../database/schemas', file);
+    if (!fsModule.existsSync(schemaPath)) {
+      console.warn(`⚠️ Schema file not found at ${schemaPath}`);
+      continue;
+    }
+    await pool.query(fsModule.readFileSync(schemaPath, 'utf8'));
+  }
+};
+
 const runStartupMigrations = async () => {
   for (const statement of startupMigrations) {
     await pool.query(statement);
   }
+  await runMarketSchema();
 };
 
 // Test connection immediately

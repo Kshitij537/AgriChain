@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AgriChain System Handoff</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+
+  :root {
+    --ink: #16181d;
+    --ink-soft: #4a5160;
+    --ink-faint: #767e8d;
+    --rule: #d7dbe2;
+    --rule-soft: #e8ebf0;
+    --accent: #1d5c3f;
+    --accent-soft: #eef5f1;
+    --warn: #8a5a12;
+    --warn-soft: #fdf5e6;
+    --bad: #9a2f2f;
+    --bad-soft: #fdf0f0;
+    --code-bg: #f5f6f8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "Charter", "Georgia", "Times New Roman", serif;
+    font-size: 9.6pt;
+    line-height: 1.52;
+    color: var(--ink);
+    margin: 0;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    line-height: 1.22;
+    margin: 0;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  h1 { font-size: 23pt; font-weight: 800; letter-spacing: -0.4pt; }
+  h2 {
+    font-size: 13.5pt; font-weight: 700; letter-spacing: -0.2pt;
+    margin: 20pt 0 7pt; padding-bottom: 3pt;
+    border-bottom: 1.2pt solid var(--ink);
+  }
+  h3 { font-size: 10.8pt; font-weight: 700; margin: 13pt 0 4pt; }
+  h4 {
+    font-size: 9.4pt; font-weight: 700; margin: 10pt 0 3pt;
+    text-transform: uppercase; letter-spacing: 0.4pt; color: var(--ink-soft);
+  }
+
+  p { margin: 0 0 6pt; }
+  ul, ol { margin: 0 0 7pt; padding-left: 15pt; }
+  li { margin-bottom: 2.5pt; }
+  strong { font-weight: 700; }
+
+  code, .mono {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 8.2pt;
+    background: var(--code-bg);
+    padding: 0.5pt 2.5pt;
+    border-radius: 2pt;
+    word-break: break-word;
+  }
+  h2 code, h3 code, td code { background: none; padding: 0; }
+  td code { font-size: 7.8pt; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 6pt 0 9pt; font-size: 8.4pt;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  th {
+    text-align: left; font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 7.4pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.4pt; color: var(--ink-soft);
+    border-bottom: 1pt solid var(--ink); padding: 3.5pt 5pt 3pt 0;
+    vertical-align: bottom;
+  }
+  td {
+    padding: 3.5pt 5pt 3.5pt 0; border-bottom: 0.5pt solid var(--rule-soft);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  table.tight td, table.tight th { padding-right: 4pt; }
+
+  /* status pills */
+  .s {
+    display: inline-block; font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 6.8pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.3pt; padding: 1pt 4pt; border-radius: 6pt;
+    white-space: nowrap;
+  }
+  .s-ok   { background: var(--accent-soft); color: var(--accent); }
+  .s-warn { background: var(--warn-soft);   color: var(--warn); }
+  .s-bad  { background: var(--bad-soft);    color: var(--bad); }
+
+  .lead {
+    font-size: 10.6pt; line-height: 1.5; color: var(--ink-soft);
+    margin: 9pt 0 0;
+  }
+
+  .meta {
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 7.8pt; color: var(--ink-faint);
+    margin-top: 10pt; padding-top: 7pt; border-top: 0.5pt solid var(--rule);
+  }
+
+  .box {
+    border: 0.8pt solid var(--rule); border-left: 2.5pt solid var(--accent);
+    background: #fcfdfc; padding: 7pt 9pt; margin: 8pt 0;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  .box.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .box.bad  { border-left-color: var(--bad);  background: var(--bad-soft); }
+  .box p:last-child { margin-bottom: 0; }
+  .box-t {
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 7.6pt; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5pt; color: var(--ink-soft); margin-bottom: 3pt;
+  }
+
+  pre {
+    background: var(--code-bg); border: 0.5pt solid var(--rule);
+    padding: 6pt 8pt; margin: 6pt 0; font-size: 7.8pt; line-height: 1.42;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    overflow-x: auto; white-space: pre;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  figure { margin: 9pt 0; page-break-inside: avoid; break-inside: avoid; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption {
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 7.4pt; color: var(--ink-faint); margin-top: 4pt;
+  }
+
+  .page-break { page-break-before: always; break-before: page; }
+  .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+
+  .two-col { column-count: 2; column-gap: 14pt; }
+  .two-col ul { margin-top: 0; }
+
+  .toc { font-family: "Helvetica Neue", Helvetica, sans-serif; font-size: 8.6pt; }
+  .toc ol { padding-left: 14pt; margin: 0; }
+  .toc > ol > li { margin-bottom: 3pt; font-weight: 600; }
+  .toc ol ol { padding-left: 12pt; margin-top: 2pt; }
+  .toc ol ol li { font-weight: 400; color: var(--ink-soft); margin-bottom: 1pt; }
+
+  .fp {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 7.6pt; color: var(--ink-faint);
+  }
+  .nowrap { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<h1>AgriChain — System Handoff</h1>
+<p class="lead">
+  A complete technical reference for the AgriChain platform: every module that exists, how the
+  pieces feed one another, the reasoning behind the design decisions, and an honest account of
+  what is still missing.
+</p>
+<div class="meta">
+  Generated 4 October 2026 · Repository <code>/Users/kshitijdeshmukh/AgriChain</code> · branch <code>main</code><br>
+  Verified against a live stack: 289/289 backend tests passing, frontend production build clean (573 modules).
+</div>
+
+<div class="box">
+  <div class="box-t">How to use this document</div>
+  <p>
+    This is written to be handed to another engineer or AI assistant with <em>no prior context</em>.
+    Every claim here was checked against the running code, the live database, or a live HTTP call —
+    not inferred from file names. All paths are repository-relative.
+  </p>
+  <p style="margin-bottom:0">
+    Status labels mean exactly this:
+    <span class="s s-ok">Working</span> verified end to end ·
+    <span class="s s-warn">Needs process</span> code is complete but depends on a service that is not
+    currently running ·
+    <span class="s s-bad">Gap</span> missing, stubbed, or dead code.
+  </p>
+</div>
+
+<h2>Contents</h2>
+<div class="toc">
+<ol>
+  <li>What AgriChain is — the central idea</li>
+  <li>System topology — four processes and a database</li>
+  <li>The six principles that explain the code</li>
+  <li>Module reference
+    <ol>
+      <li>Authentication &amp; roles</li>
+      <li>Farms &amp; field boundaries</li>
+      <li>NDVI &amp; satellite imagery</li>
+      <li>Disease detection (CNN)</li>
+      <li>Weather intelligence</li>
+      <li>Spoilage risk</li>
+      <li>Market intelligence — the mandi channel</li>
+      <li>Transport &amp; freight</li>
+      <li>Buyer marketplace — the direct channel</li>
+    </ol>
+  </li>
+  <li>How it all connects — the dependency graph</li>
+  <li>Data model — 28 tables</li>
+  <li>Complete API surface</li>
+  <li>Verified status right now</li>
+  <li>What is remaining</li>
+  <li>Running the stack</li>
+  <li>Glossary</li>
+</ol>
+</div>
+
+<h2>1. What AgriChain is — the central idea</h2>
+
+<p>
+  AgriChain is a decision-support platform for Indian smallholder farmers. It answers one question
+  across every module: <strong>what should I do with this crop, and where will it leave me the most
+  money?</strong>
+</p>
+
+<p>
+  The platform's organising insight is that <strong>the advertised price is not the farmer's income</strong>.
+  A mandi quoting ₹31/kg 135 km away can pay less than one quoting ₹28/kg 16 km away, once
+  freight, commission, cess, hamali and the share of the load that rots in transit are subtracted.
+  Every ranking in this system is therefore ordered by <strong>expected money in hand</strong>, never by
+  board price, distance, or any single input.
+</p>
+
+<p>
+  Two selling channels are modelled, and the architecture's main achievement is that they are
+  <strong>comparable on identical terms</strong>:
+</p>
+
+<table>
+  <tr>
+    <th style="width:22%">Channel</th><th style="width:34%">What it is</th><th>How the farmer reaches it</th>
+  </tr>
+  <tr>
+    <td><strong>APMC mandi</strong></td>
+    <td>Government-regulated wholesale markets with published daily prices</td>
+    <td>Market Intelligence module ranks nearby mandis by expected money</td>
+  </tr>
+  <tr>
+    <td><strong>Direct buyer</strong></td>
+    <td>Private wholesalers, processors, exporters who post what they need</td>
+    <td>Buyer Marketplace — negotiate a price, agree a deal that reserves the crop</td>
+  </tr>
+</table>
+
+<p>
+  Because both channels are costed by the <em>same</em> engine
+  (<code>netReturnService</code>) using the <em>same</em> spoilage model, routing, and freight rates,
+  the endpoint <code>GET /api/marketplace/selling-options</code> can place a mandi and a private buyer
+  side by side and the comparison is meaningful rather than apples-to-oranges. This is the single most
+  important structural fact about the codebase.
+</p>
+
+<h2>2. System topology — four processes and a database</h2>
+
+<figure>
+<svg viewBox="0 0 740 310" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a5160"/>
+    </marker>
+  </defs>
+
+  <!-- Browser -->
+  <rect x="14" y="16" width="150" height="56" rx="5" fill="#fff" stroke="#16181d" stroke-width="1.3"/>
+  <text x="89" y="37" text-anchor="middle" font-size="11" font-weight="700" fill="#16181d">React SPA</text>
+  <text x="89" y="51" text-anchor="middle" font-size="8.5" fill="#4a5160">Vite dev · port 5173</text>
+  <text x="89" y="63" text-anchor="middle" font-size="8" fill="#767e8d">frontend/</text>
+
+  <!-- Backend -->
+  <rect x="262" y="8" width="186" height="72" rx="5" fill="#eef5f1" stroke="#1d5c3f" stroke-width="1.6"/>
+  <text x="355" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#1d5c3f">Express API</text>
+  <text x="355" y="44" text-anchor="middle" font-size="8.5" fill="#1d5c3f">Node · port 3000</text>
+  <text x="355" y="57" text-anchor="middle" font-size="8" fill="#4a5160">backend/ — 28 services</text>
+  <text x="355" y="70" text-anchor="middle" font-size="8" fill="#4a5160">all business logic + authz</text>
+
+  <!-- Postgres -->
+  <rect x="262" y="246" width="186" height="56" rx="5" fill="#fff" stroke="#16181d" stroke-width="1.3"/>
+  <text x="355" y="268" text-anchor="middle" font-size="11" font-weight="700" fill="#16181d">PostgreSQL</text>
+  <text x="355" y="282" text-anchor="middle" font-size="8.5" fill="#4a5160">agrichain_db · port 5432</text>
+  <text x="355" y="294" text-anchor="middle" font-size="8" fill="#767e8d">28 tables · single pooled superuser</text>
+
+  <!-- ML service -->
+  <rect x="546" y="8" width="180" height="68" rx="5" fill="#fdf5e6" stroke="#8a5a12" stroke-width="1.3"/>
+  <text x="636" y="28" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8a5a12">ml-service</text>
+  <text x="636" y="41" text-anchor="middle" font-size="8.5" fill="#8a5a12">FastAPI · port 8000</text>
+  <text x="636" y="54" text-anchor="middle" font-size="8" fill="#4a5160">disease CNN + price XGBoost</text>
+  <text x="636" y="67" text-anchor="middle" font-size="8" fill="#4a5160">/predict · /predict/price</text>
+
+  <!-- Satellite service -->
+  <rect x="546" y="96" width="180" height="60" rx="5" fill="#fdf5e6" stroke="#8a5a12" stroke-width="1.3"/>
+  <text x="636" y="116" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8a5a12">satellite-service</text>
+  <text x="636" y="129" text-anchor="middle" font-size="8.5" fill="#8a5a12">Flask · port 5001</text>
+  <text x="636" y="142" text-anchor="middle" font-size="8" fill="#4a5160">NDVI via Google Earth Engine</text>
+
+  <!-- External -->
+  <rect x="546" y="176" width="180" height="86" rx="5" fill="#f5f6f8" stroke="#767e8d" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="636" y="195" text-anchor="middle" font-size="9.5" font-weight="700" fill="#4a5160">External APIs</text>
+  <text x="636" y="209" text-anchor="middle" font-size="8" fill="#4a5160">data.gov.in — mandi prices</text>
+  <text x="636" y="221" text-anchor="middle" font-size="8" fill="#4a5160">Open-Meteo — weather</text>
+  <text x="636" y="233" text-anchor="middle" font-size="8" fill="#4a5160">OSRM / ORS — road routing</text>
+  <text x="636" y="245" text-anchor="middle" font-size="8" fill="#4a5160">Google Places — transporters</text>
+  <text x="636" y="257" text-anchor="middle" font-size="8" fill="#4a5160">Gemini — plain-language advice</text>
+
+  <!-- arrows -->
+  <line x1="166" y1="44" x2="258" y2="44" stroke="#4a5160" stroke-width="1.2" marker-end="url(#ar)"/>
+  <text x="212" y="38" text-anchor="middle" font-size="7.5" fill="#767e8d">REST + JWT</text>
+
+  <line x1="355" y1="82" x2="355" y2="242" stroke="#4a5160" stroke-width="1.2" marker-end="url(#ar)"/>
+  <text x="361" y="165" font-size="7.5" fill="#767e8d">pg.Pool</text>
+
+  <line x1="450" y1="36" x2="542" y2="36" stroke="#4a5160" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="450" y1="52" x2="500" y2="52" stroke="#4a5160" stroke-width="1.2"/>
+  <line x1="500" y1="52" x2="500" y2="122" stroke="#4a5160" stroke-width="1.2"/>
+  <line x1="500" y1="122" x2="542" y2="122" stroke="#4a5160" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="450" y1="64" x2="478" y2="64" stroke="#4a5160" stroke-width="1.2"/>
+  <line x1="478" y1="64" x2="478" y2="206" stroke="#4a5160" stroke-width="1.2"/>
+  <line x1="478" y1="206" x2="542" y2="206" stroke="#4a5160" stroke-width="1.2" marker-end="url(#ar)"/>
+
+</svg>
+<figcaption>
+  Process topology. The browser only ever talks to Express — no API keys and no third-party calls
+  reach the client. Both Python services and all five external APIs are optional at runtime.
+</figcaption>
+</figure>
+
+<table>
+  <tr><th style="width:21%">Process</th><th style="width:9%">Port</th><th style="width:13%">Stack</th><th style="width:16%">Status now</th><th>Notes</th></tr>
+  <tr>
+    <td><strong>Express API</strong><br><span class="fp">backend/</span></td>
+    <td>3000</td><td>Node 18+, Express 4</td>
+    <td><span class="s s-ok">Working</span></td>
+    <td>All business logic, all authorization. The only process that touches the database.</td>
+  </tr>
+  <tr>
+    <td><strong>React SPA</strong><br><span class="fp">frontend/</span></td>
+    <td>5173</td><td>React 18, Vite 5, Tailwind</td>
+    <td><span class="s s-ok">Working</span></td>
+    <td>21 pages. Production build clean.</td>
+  </tr>
+  <tr>
+    <td><strong>ml-service</strong><br><span class="fp">ml-service/</span></td>
+    <td>8000</td><td>FastAPI, TensorFlow, XGBoost</td>
+    <td><span class="s s-bad">Port conflict</span></td>
+    <td>Port 8000 is currently held by an unrelated "LLM Gateway" process. See §8.</td>
+  </tr>
+  <tr>
+    <td><strong>satellite-service</strong><br><span class="fp">satellite-service/</span></td>
+    <td>5001</td><td>Flask, Google Earth Engine</td>
+    <td><span class="s s-warn">Not running</span></td>
+    <td>NDVI returns an explicit error when absent; nothing else is affected.</td>
+  </tr>
+  <tr>
+    <td><strong>PostgreSQL</strong></td>
+    <td>5432</td><td>Postgres + <code>pg.Pool</code></td>
+    <td><span class="s s-ok">Working</span></td>
+    <td>28 tables. Schema auto-applies on boot (idempotent).</td>
+  </tr>
+</table>
+
+<h2 class="page-break">3. The six principles that explain the code</h2>
+
+<p>
+  Reading these first makes the rest of the codebase predictable. They are applied consistently and
+  are the "why" behind most decisions an outsider would otherwise find surprising.
+</p>
+
+<h3>1 · Rank by expected money, never by one input</h3>
+<p>
+  <span class="fp">backend/src/services/netReturnService.js</span> — called the "heart of AgriChain" in
+  its own header comment. Every other engine exists to feed it:
+</p>
+<pre><code>  gross sale value        price x the whole load
+- spoilage loss value     the part that never gets sold
+= expected sale value     what the buyer actually pays for
+- transport cost          getting it there (and the truck back)
+- other selling costs     commission, cess, hamali, weighing
+= EXPECTED MONEY          what the farmer walks home with</code></pre>
+<p>
+  The engine returns a full itemised ledger, so every deduction shown to a farmer traces to a number
+  this function produced. It is deterministic — no ML, no randomness, same inputs, same rupees.
+</p>
+
+<h3>2 · Label the provenance of every number</h3>
+<p>
+  Engines declare what they are, so an API response can never imply more rigour than exists. Examples
+  found in the code:
+</p>
+<ul>
+  <li><code>RULE_BASED_BASELINE</code> — the spoilage engine is a physics-based rule set, not a fitted
+    model. Its header explains why: there is no labelled Indian post-harvest spoilage dataset in the
+    repo, and <em>"fabricating one and fitting a regressor to it would manufacture an accuracy figure
+    that means nothing."</em></li>
+  <li><code>STRAIGHT_LINE</code> vs a real route — a haversine estimate is never presented as a road
+    distance.</li>
+  <li><code>DEMO_SEED</code> vs <code>MANDI_API</code> — every price row records its source, and demo
+    rows carry <code>is_demo_data = TRUE</code>.</li>
+  <li><code>is_demo_trained: true</code> — the price model's own metadata admits it was trained on
+    seeded data.</li>
+</ul>
+
+<h3>3 · Integer paise, never floats</h3>
+<p>
+  <span class="fp">backend/src/utils/money.js</span>. Rupees appear only at API boundaries. The stated
+  reason is precise: <em>"a cascade of eight float operations across a dozen markets drifts, and drift
+  here reorders the ranking — it changes which mandi a farmer drives to."</em> Offer totals are
+  <strong>stored, not derived</strong>, so an agreed figure can never be recomputed differently later.
+</p>
+
+<h3>4 · Authorization in the service layer, not the database</h3>
+<div class="box warn">
+  <div class="box-t">Why there is no Row Level Security</div>
+  <p>
+    Everything connects through one pooled <code>postgres</code> <strong>superuser</strong>
+    (<span class="fp">backend/src/config/db.js</span>), and PostgreSQL superusers <strong>bypass RLS
+    entirely</strong> — policies would be decorative. Real RLS needs per-request database roles and
+    <code>SET LOCAL</code> session context, a re-architecture of the connection layer affecting all
+    nine modules.
+  </p>
+  <p style="margin-bottom:0">
+    Used instead: <strong>ownership checks in every service</strong> (no read or write path skips
+    them) plus <strong>database <code>CHECK</code>, <code>FOREIGN KEY</code> and <code>UNIQUE</code>
+    constraints</strong>, which Postgres enforces regardless of who connects — including a superuser.
+    Those constraints are what make over-reservation and double-acceptance structurally impossible.
+    This is the most significant known gap; migration path is documented in
+    <span class="fp">docs/Marketplace/README.md §1</span>.
+  </p>
+</div>
+<p>
+  A corollary applied everywhere: <strong>identity is never taken from the request body</strong>.
+  <code>req.user.id</code> comes from a verified JWT and <code>req.buyerProfile</code> from
+  middleware; a <code>userId</code>, <code>farmerId</code> or <code>buyerId</code> in a body is
+  ignored.
+</p>
+
+<h3>5 · Degrade with a flag, never with a guess</h3>
+<p>
+  From <code>marketService</code>'s header: only two conditions are fatal — no farm coordinates, and
+  no price data for the crop anywhere. Everything else continues with an explicit flag
+  (<code>pricePredictionAvailable:false</code>, <code>weatherAvailable:false</code>, routing falling
+  back to a labelled straight line). <em>"A farmer gets a usable, honestly-labelled answer or a clear
+  error, never a confident-looking guess."</em>
+</p>
+
+<h3>6 · Never ask for data the system already holds</h3>
+<p>
+  <code>availabilityService.suggestFromFarms</code> pre-fills a crop listing from the farmer's saved
+  fields — crop type, coordinates, farm name — leaving only the one genuinely new fact: how many
+  kilograms. The <code>farms</code> table has no quantity column, which is precisely why
+  <code>farmer_crop_availability</code> exists.
+</p>
+
+<h2 class="page-break">4. Module reference</h2>
+
+<h3>4.1 Authentication &amp; roles <span class="s s-ok">Working</span></h3>
+<p>
+  <span class="fp">backend/src/controllers/authController.js · services/roleService.js</span>
+</p>
+<p>
+  JWT bearer tokens, 7-day expiry, bcrypt password hashing. Three roles:
+  <code>farmer</code> is <strong>implicit</strong> for every account; <code>buyer</code> and
+  <code>admin</code> must be explicitly granted (<code>user_roles</code> table). Registering a
+  business via <code>POST /api/buyers/profile</code> grants the buyer role.
+</p>
+<p>Four middleware variants exist, and the distinction matters:</p>
+<table class="tight">
+  <tr><th style="width:26%">Middleware</th><th>Behaviour and why</th></tr>
+  <tr><td><code>authMiddleware</code></td><td>Requires a valid JWT. Rejects otherwise.</td></tr>
+  <tr><td><code>optionalAuthMiddleware</code></td><td>Populates <code>req.user</code> if a token is present, else continues. Lets anonymous callers run a disease prediction.</td></tr>
+  <tr><td><code>optionalBuyerMiddleware</code></td><td>Attaches <code>req.buyerProfile</code> if the caller happens to be a buyer, without requiring it. Needed where being a buyer changes <em>what</em> you see but is not a precondition — e.g. browsing requirements. <code>requireBuyer()</code> would lock farmers out.</td></tr>
+  <tr><td><code>roleMiddleware</code></td><td><code>requireBuyer()</code> (also rejects suspended buyers), <code>requireAdmin()</code>.</td></tr>
+</table>
+<p>
+  <strong>Note:</strong> the whole marketplace uses strict <code>authMiddleware</code>, never optional
+  auth, because it holds private B2B conversations and negotiated prices. Elsewhere an
+  unauthenticated caller may resolve to a development user id — harmless for reading your own NDVI
+  history, unacceptable here.
+</p>
+
+<h3>4.2 Farms &amp; field boundaries <span class="s s-ok">Working</span></h3>
+<p><span class="fp">backend/src/controllers/farmController.js · database/schemas/farms.sql</span></p>
+<p>
+  CRUD for farms with a name, point location, area in hectares, crop type, and a GeoJSON-style
+  <code>boundary_coordinates</code> (JSONB) polygon drawn on a Google map in the frontend. Farm
+  coordinates are the entry point for nearly everything else: market candidate search, routing,
+  spoilage transit estimation, NDVI, and weather all start from a farm's latitude/longitude.
+</p>
+<p>Frontend: <code>FarmSetup</code>, <code>FarmBoundarySetup</code>, <code>SavedFields</code>, <code>FarmView</code>, <code>FieldAnalytics</code>.</p>
+
+<h3>4.3 NDVI &amp; satellite imagery <span class="s s-warn">Needs process</span></h3>
+<p><span class="fp">backend/src/services/ndviService.js · ndviStorageService.js · jobs/ndviRefreshJob.js · satellite-service/</span></p>
+<p>
+  NDVI (Normalised Difference Vegetation Index) measures crop vigour from Sentinel-2 bands via Google
+  Earth Engine. The Flask service at port 5001 does the Earth Engine work — cloud masking, band math,
+  optional per-pixel grids — and Express stores results in <code>ndvi</code> and
+  <code>ndvi_history</code>.
+</p>
+<p>
+  A <strong>daily refresh job</strong> (<code>ndviRefreshJob</code>) walks every farm with a boundary
+  on a schedule set by <code>NDVI_DAILY_REFRESH_*</code> env vars, and can alert on a vigour drop
+  (<code>NDVI_ALERT_DROP_ABS</code>). A unique index on
+  <code>(field_id, captured_date)</code> prevents duplicate history rows.
+</p>
+<div class="box warn">
+  <p style="margin-bottom:0">
+    <strong>Current state:</strong> the satellite service is not running, so the startup refresh logs
+    <code>Satellite service is not available at http://localhost:5001</code> and fails for each farm
+    (7 farms, 0 succeeded in the last observed run). This is a <em>missing process, not a code
+    defect</em> — the error is explicit and no other module is affected. Start the Flask service to
+    restore it; it additionally needs Google Earth Engine credentials.
+  </p>
+</div>
+
+<h3>4.4 Disease detection <span class="s s-warn">Needs process</span></h3>
+<p><span class="fp">ml-service/ · backend/src/services/mlService.js · docs/DiseaseDetection/</span></p>
+<p>
+  A trained <strong>EfficientNetB0</strong> CNN classifies leaf photographs into 12 classes across
+  three crops. The model artifact is committed (<code>disease_model.keras</code>, 35 MB) with full
+  provenance metadata:
+</p>
+<table class="tight">
+  <tr><th style="width:30%">Property</th><th>Value</th></tr>
+  <tr><td>Architecture</td><td>EfficientNetB0, 224×224×3 input</td></tr>
+  <tr><td>Classes</td><td>12 — Cotton (healthy, bacterial blight, alternaria leaf spot, leaf curl virus), Soybean (healthy, rust, bacterial pustule, brown spot), Orange (healthy, citrus canker, black spot, greening)</td></tr>
+  <tr><td>Test accuracy</td><td><strong>98.58%</strong> · macro-F1 0.9365 · weighted-F1 0.9858</td></tr>
+  <tr><td>Traceability</td><td>SHA-256 of the artifact, and a <code>split_fingerprint</code> tying it to an exact train/test split</td></tr>
+</table>
+<p>
+  The pipeline adds severity scoring (<code>ml-service/src/severity.py</code>) and a
+  <strong>combined advisory</strong> (<code>POST /api/disease/combined-advisory</code>) that merges
+  disease findings with weather-derived risk — an example of cross-module composition. Detections
+  persist to the <code>diseases</code> table with the uploaded image served through
+  <code>/uploads</code>. The dataset work is documented across 17 reports in
+  <span class="fp">dataset/reports/</span>, including near-duplicate calibration and leakage
+  recalibration.
+</p>
+<p>
+  <strong>Current state:</strong> <code>GET /api/disease/health</code> returns
+  <code>{backend: "healthy", ml_service: "unavailable"}</code> — see the port conflict in §8.
+</p>
+
+<h3>4.5 Weather intelligence <span class="s s-ok">Working</span></h3>
+<p><span class="fp">backend/src/services/weatherService.js</span></p>
+<p>
+  Open-Meteo — free, no API key, which is why it was chosen. Ten-minute in-memory cache. Serves
+  current conditions, multi-day and hourly forecasts, alerts, farming recommendations, and a
+  <strong>disease-risk</strong> reading derived from temperature and humidity that the disease module
+  consumes for its combined advisory. Also feeds <code>marketService</code>, where ambient conditions
+  adjust the spoilage estimate.
+</p>
+<p>Verified live: <code>{"status":"operational","provider":"Open-Meteo"}</code>.</p>
+
+<h3>4.6 Spoilage risk <span class="s s-ok">Working</span></h3>
+<p><span class="fp">backend/src/services/spoilageService.js · database/schemas/spoilage.sql</span></p>
+<p>Deterministic, external-dependency-free, and deliberately simple:</p>
+<pre><code>effectiveShelfLife = baseShelfLife x storageFactor x tempFactor x humidityFactor
+exposure           = daysSinceHarvest + transitDays
+riskScore          = (exposure / effectiveShelfLife) x 100</code></pre>
+<p>
+  <code>tempFactor</code> uses a <strong>Q10 respiration model</strong> (respiration roughly doubles per
+  10 °C above the crop's optimum) — the standard first-order approximation for post-harvest
+  deterioration, and auditable by an agronomist.
+</p>
+<p>
+  This module also owns the <strong>crop catalogue</strong>: 18 crops with perishability class, base
+  shelf life, optimal temperature and humidity, and a grain flag. <code>getCropProfile()</code> is
+  consumed by six other services, making it the most depended-upon function in the backend. The
+  catalogue is exposed at <code>GET /api/crops</code> and is what the frontend crop pickers read, so a
+  user cannot submit an unsupported crop.
+</p>
+<p>Verified live: <code>{"status":"operational","supportedCrops":18}</code>.</p>
+
+<h3>4.7 Market intelligence — the mandi channel <span class="s s-ok">Working</span></h3>
+<p><span class="fp">backend/src/services/marketService.js and 9 collaborators · docs/MarketIntelligence/</span></p>
+<p>This is the largest subsystem. <code>POST /api/market/recommend</code> orchestrates a ten-stage pipeline:</p>
+<pre><code>farm location -> candidate markets -> observed prices -> price forecast
+  -> road routing -> transport cost -> weather -> spoilage risk
+  -> net realizable return -> ranking -> sell now / wait</code></pre>
+<p>Each stage is its own service; <code>marketService</code> only sequences them and prevents one failing stage from sinking the request.</p>
+<h4>Price data</h4>
+<p>
+  <code>marketPriceIngestService</code> pulls real mandi prices from <strong>data.gov.in</strong> via a
+  provider abstraction (<span class="fp">services/providers/</span>), with
+  <code>commodity_provider_map</code> and <code>market_provider_map</code> translating between their
+  vocabulary and ours. Runs are audited in <code>price_ingest_runs</code>. Every price row carries a
+  source and a freshness classification (<code>FRESH</code> / <code>RECENT</code> /
+  <code>STALE</code>) derived from configurable day thresholds.
+</p>
+<h4>Price forecasting</h4>
+<p>
+  XGBoost regressors at 1-day and 3-day horizons (<span class="fp">ml-service/models/price/</span>),
+  predicting the <em>delta</em> from the last known price and reconstructing the level as
+  <code>lag_1 + predicted_delta</code>. Test MAE ₹40.40, MAPE 1.82%.
+</p>
+<div class="box warn">
+  <p style="margin-bottom:0">
+    <strong>Honest caveat, from the model's own metadata:</strong>
+    <code>trained_on_real_data: false</code>, <code>is_demo_trained: true</code>, trained on 18,560
+    <code>DEMO_SEED</code> observations across 5 crops and 16 markets. It beats a persistence baseline
+    by only <strong>0.52%</strong> MAE — i.e. barely better than "tomorrow's price equals today's".
+    Treat the forecast as scaffolding awaiting real training data, not as a working predictor. The
+    recommendation does not depend on it: it informs sell-now-vs-wait only.
+  </p>
+</div>
+<h4>Sell now or wait</h4>
+<p>
+  <code>sellTimingService</code> compares expected money today against expected money after waiting —
+  factoring the forecast <em>and</em> the extra spoilage the delay causes. It only advises waiting if
+  the gain clears both <code>SELL_WAIT_MIN_GAIN_PERCENT</code> and
+  <code>SELL_WAIT_MIN_GAIN_RUPEES</code>, so it cannot recommend waiting for a trivial gain.
+</p>
+<h4>Plain-language explanation</h4>
+<p>
+  <code>marketExplanationService</code> asks Gemini to narrate a recommendation in the farmer's
+  language. Critically, <strong>the narration cannot change any figure</strong> — the backend enforces
+  that — so it is safe to render beside the numbers.
+</p>
+<p>
+  Verified live: 16 markets, real <code>MANDI_API</code> price data for 14 crops plus
+  <code>DEMO_SEED</code> for 5.
+</p>
+
+<h3>4.8 Transport &amp; freight <span class="s s-ok">Working</span></h3>
+<p><span class="fp">services/transportService.js · transportCostService.js · freightRateService.js · fuelPriceService.js · routingService.js · googlePlacesService.js</span></p>
+<p>Four layers, each independently useful:</p>
+<ul>
+  <li><strong>Routing</strong> — OSRM by default, OpenRouteService optional. On failure it falls back
+    to haversine × a 1.3 detour factor (the commonly cited circuity factor for Indian district roads)
+    and <em>labels the result</em> <code>STRAIGHT_LINE_ESTIMATE</code>. Cached, with a configurable TTL.</li>
+  <li><strong>Cost</strong> — per-km rates from <code>transport_config</code>, adjusted by live diesel
+    price (<code>fuel_prices</code>), including the empty return leg. Cost per kg falls as the load
+    grows, since freight is shared — a property under unit test.</li>
+  <li><strong>Freight quotes</strong> — real operator quotes in <code>transport_rate_quotes</code>,
+    with a max-age guard so a stale quote is not silently reused.</li>
+  <li><strong>Transporter discovery</strong> — Google Places (New) <code>searchText</code> finds
+    hauliers near a recommended mandi. Called <strong>server-side only</strong>, so the API key never
+    reaches the browser.</li>
+</ul>
+<p>Verified live: <code>{"status":"ok","googlePlaces":{"configured":true,"enabled":true}}</code>.</p>
+
+<h3 class="page-break">4.9 Buyer marketplace — the direct channel <span class="s s-ok">Working</span></h3>
+<p><span class="fp">controllers/marketplaceController.js · marketplaceChatController.js · buyerController.js · 8 services · docs/Marketplace/README.md</span></p>
+<p>
+  The second selling channel, and the most recently completed. A buyer posts a requirement; matching
+  farmers discover it, compare buyers by money actually kept, chat privately, negotiate with
+  structured offers, and agree a deal that reserves the crop.
+</p>
+
+<h4>The four-bucket quantity model</h4>
+<p>
+  <code>farmer_crop_availability</code> tracks quantity in four columns, and
+  <code>availabilityService</code> is the only module permitted to move stock between them:
+</p>
+<table class="tight">
+  <tr><th style="width:26%">Column</th><th>Meaning</th></tr>
+  <tr><td><code>total_harvested_kg</code></td><td>What came off the field</td></tr>
+  <tr><td><code>available_kg</code></td><td>Offered to buyers right now</td></tr>
+  <tr><td><code>reserved_kg</code></td><td>Locked by an accepted deal, not yet handed over</td></tr>
+  <tr><td><code>sold_kg</code></td><td>Handed over, deal completed</td></tr>
+</table>
+<p>
+  <em>Why:</em> collapsing these into one "quantity" column is how a marketplace sells the same 500 kg
+  twice. A database <code>CHECK (available + reserved + sold &lt;= total_harvested)</code> is the
+  backstop, and <code>reserve()</code> is the only path from available to reserved — taking a row lock
+  inside the caller's transaction.
+</p>
+
+<h4>Matching engine</h4>
+<p>
+  <code>matchingService.evaluateMatch</code> is a <strong>pure function</strong> over two loaded
+  records — no I/O — which makes every eligibility rule unit-testable in isolation. It returns a
+  verdict with <strong>plain-language reasons, not a score</strong> ("Same crop (Tomato)", "Your 400 kg
+  covers what they still need"), plus named exclusion codes when ineligible. Two directions are served:
+</p>
+<ul>
+  <li><code>findMatchesForFarmer</code> — "buyers looking for your crop", ordered by advertised value</li>
+  <li><code>findFarmersForRequirement</code> — "who can fill this requirement", ordered <em>nearest
+    first</em>, because for a buyer a nearer load is cheaper and arrives fresher</li>
+</ul>
+<p>
+  An unrecognised quality grade is treated as "unknown" rather than "fails" — <em>excluding a farmer
+  because they typed "Premium" would lose them a real sale.</em>
+</p>
+
+<h4>Expected-money comparison</h4>
+<p>
+  <code>buyerComparisonService</code> is where the two channels meet. It depends on seven other
+  services and powers:
+</p>
+<ul>
+  <li><code>GET /api/marketplace/farmer/top-buyers</code> — buyers ranked by money in hand, not
+    advertised price</li>
+  <li><code>GET /api/marketplace/selling-options</code> — <strong>mandis and direct buyers in one
+    comparison</strong></li>
+</ul>
+<p>
+  The demo scenario exists to prove the point: Buyer A advertises ₹31/kg but is 135 km away with
+  the farmer paying freight; Buyer B offers ₹28/kg, is 16 km away and collects at their own cost.
+  B leaves the farmer more money, and the UI ranks B first and says why.
+</p>
+
+<h4>Offers, deals and conversations</h4>
+<p>
+  Offers are structured proposals (<code>quantityKg</code>, <code>pricePerKg</code>,
+  <code>deliveryTerms</code>, expiry) that can be accepted, rejected, countered or withdrawn.
+  Acceptance is transactional: it reserves crop, decrements the requirement's remaining quantity, and
+  creates a deal — with openness re-checked <em>inside</em> the transaction, not just before it.
+  Counter-offers chain via <code>parent_offer_id</code>, preserving the negotiation history.
+</p>
+<p>
+  Every conversation is anchored to a requirement. A <code>UNIQUE (requirement_id, farmer_user_id,
+  buyer_user_id)</code> constraint with <code>ON CONFLICT</code> prevents duplicate threads. Chat is
+  <strong>polled</strong> every 6 s while a thread is open and the tab is visible — not pushed.
+  Attachments are served only through an authorising route that verifies participation before
+  streaming bytes; <code>express.static</code> is deliberately not used for that directory, so
+  guessing a filename gets a caller nothing.
+</p>
+
+<h4>Privacy posture</h4>
+<ul>
+  <li>Buyer phone and email are <strong>never</strong> sent to farmers.
+    <code>buyerService.toPublic()</code> is the single place that decides this.</li>
+  <li>Farm coordinates are never sent to buyers. The browse endpoint computes distance
+    <strong>server-side</strong> and returns only the number — verified by assertion in testing.</li>
+  <li>Verification status is backend-controlled. A buyer can submit for review; only an administrator
+    can grant it. Attempting to <code>PATCH</code> it is rejected — confirmed by live test.</li>
+</ul>
+
+<h4>Recently completed work</h4>
+<p>
+  The buyer-facing half of this module was finished in the most recent development pass. Before it,
+  only posting a requirement worked. What changed:
+</p>
+<table class="tight">
+  <tr><th style="width:30%">Area</th><th>What was wrong, and the fix</th></tr>
+  <tr>
+    <td><strong>Browse Farmers</strong></td>
+    <td>The page was a hard-coded "coming soon" stub and no endpoint existed. Added
+      <code>GET /api/marketplace/availability</code> (<code>availabilityService.browse</code>) with a
+      separate privacy-safe projection, plus crop/quantity/distance/grade filters.</td>
+  </tr>
+  <tr>
+    <td><strong>Matching farmers</strong></td>
+    <td>The endpoint worked but nothing ever called it. New <code>MyRequirements</code> page surfaces
+      matches per requirement with the engine's reasons, and shows exclusion diagnostics when empty.</td>
+  </tr>
+  <tr>
+    <td><strong>Buyer-initiated contact</strong></td>
+    <td>The backend supported it (<code>senderIsBuyer</code>) but there was no UI entry point
+      anywhere. Added shared Contact and Offer dialogs.</td>
+  </tr>
+  <tr>
+    <td><strong>Dead routes</strong></td>
+    <td><code>/marketplace/requirements/:id</code> was referenced from two places but was never a
+      route in <code>App.jsx</code> — both clicks went nowhere. Repointed to
+      <code>/buyer/requirements/:id</code>, gated on <code>mySide === 'buyer'</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Unread badges</strong></td>
+    <td><code>markConversationRead</code> was never called, so counts only ever went up. Now cleared
+      on open and on poll.</td>
+  </tr>
+  <tr>
+    <td><strong>Other</strong></td>
+    <td>Requirement publish/edit wired; <code>/buyer/requirements</code> no longer a duplicate
+      dashboard; block/unblock and report wired; profile editing added; free-text crop box replaced
+      with a picker from <code>GET /api/crops</code>.</td>
+  </tr>
+</table>
+<p>
+  One design constraint is worth carrying forward: <strong>a buyer's offer or conversation must be
+  anchored to one of their own open requirements for that crop</strong>. This is enforced in
+  <code>conversationService.findOrCreate</code> and <code>offerService.resolveContext</code>. It is
+  deliberate — it stops the marketplace becoming a cold-contact list and means every thread a farmer
+  receives already states its purpose. The UI therefore asks which requirement an approach is for, and
+  explains the rule when the buyer has none, rather than failing at the API.
+</p>
+
+<h2 class="page-break">5. How it all connects — the dependency graph</h2>
+
+<figure>
+<svg viewBox="0 0 740 400" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b93a1"/>
+    </marker>
+  </defs>
+
+  <!-- Layer labels -->
+  <text transform="translate(16,46) rotate(-90)" text-anchor="middle" font-size="7.2" font-weight="700" letter-spacing="0.6" fill="#8b93a1">ENTRY</text>
+  <text transform="translate(16,130) rotate(-90)" text-anchor="middle" font-size="7.2" font-weight="700" letter-spacing="0.6" fill="#8b93a1">ORCHESTRATORS</text>
+  <text transform="translate(16,250) rotate(-90)" text-anchor="middle" font-size="7.2" font-weight="700" letter-spacing="0.6" fill="#8b93a1">SHARED ENGINES</text>
+  <text transform="translate(16,342) rotate(-90)" text-anchor="middle" font-size="7.2" font-weight="700" letter-spacing="0.6" fill="#8b93a1">FOUNDATION</text>
+
+  <line x1="26" y1="64" x2="740" y2="64" stroke="#e8ebf0" stroke-width="1"/>
+  <line x1="26" y1="190" x2="740" y2="190" stroke="#e8ebf0" stroke-width="1"/>
+  <line x1="26" y1="306" x2="740" y2="306" stroke="#e8ebf0" stroke-width="1"/>
+
+  <!-- entry -->
+  <rect x="120" y="8" width="200" height="40" rx="4" fill="#fff" stroke="#16181d" stroke-width="1.2"/>
+  <text x="220" y="26" text-anchor="middle" font-size="9" font-weight="700">POST /api/market/recommend</text>
+  <text x="220" y="39" text-anchor="middle" font-size="7.5" fill="#4a5160">mandi channel</text>
+
+  <rect x="388" y="8" width="230" height="40" rx="4" fill="#fff" stroke="#16181d" stroke-width="1.2"/>
+  <text x="503" y="26" text-anchor="middle" font-size="9" font-weight="700">/marketplace/selling-options</text>
+  <text x="503" y="39" text-anchor="middle" font-size="7.5" fill="#4a5160">both channels compared</text>
+
+  <!-- orchestrators -->
+  <rect x="120" y="82" width="200" height="44" rx="4" fill="#eef5f1" stroke="#1d5c3f" stroke-width="1.4"/>
+  <text x="220" y="100" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1d5c3f">marketService</text>
+  <text x="220" y="114" text-anchor="middle" font-size="7.5" fill="#4a5160">sequences 9 services</text>
+
+  <rect x="388" y="82" width="230" height="44" rx="4" fill="#eef5f1" stroke="#1d5c3f" stroke-width="1.4"/>
+  <text x="503" y="100" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1d5c3f">buyerComparisonService</text>
+  <text x="503" y="114" text-anchor="middle" font-size="7.5" fill="#4a5160">depends on 7, incl. marketService</text>
+
+  <rect x="120" y="140" width="200" height="34" rx="4" fill="#fff" stroke="#4a5160" stroke-width="1"/>
+  <text x="220" y="154" text-anchor="middle" font-size="8.5" font-weight="700">matchingService</text>
+  <text x="220" y="166" text-anchor="middle" font-size="7.5" fill="#4a5160">pure eligibility verdicts</text>
+
+  <rect x="388" y="140" width="230" height="34" rx="4" fill="#fff" stroke="#4a5160" stroke-width="1"/>
+  <text x="503" y="154" text-anchor="middle" font-size="8.5" font-weight="700">offerService · conversationService</text>
+  <text x="503" y="166" text-anchor="middle" font-size="7.5" fill="#4a5160">transactional negotiation</text>
+
+  <!-- shared engines -->
+  <rect x="40" y="208" width="152" height="46" rx="4" fill="#fdf5e6" stroke="#8a5a12" stroke-width="1.5"/>
+  <text x="116" y="226" text-anchor="middle" font-size="9.5" font-weight="700" fill="#8a5a12">netReturnService</text>
+  <text x="116" y="239" text-anchor="middle" font-size="7.5" fill="#4a5160">EXPECTED MONEY</text>
+  <text x="116" y="250" text-anchor="middle" font-size="7" fill="#767e8d">3 consumers</text>
+
+  <rect x="206" y="208" width="146" height="46" rx="4" fill="#fdf5e6" stroke="#8a5a12" stroke-width="1.5"/>
+  <text x="279" y="226" text-anchor="middle" font-size="9.5" font-weight="700" fill="#8a5a12">spoilageService</text>
+  <text x="279" y="239" text-anchor="middle" font-size="7.5" fill="#4a5160">crop profiles + risk</text>
+  <text x="279" y="250" text-anchor="middle" font-size="7" fill="#767e8d">6 consumers</text>
+
+  <rect x="366" y="208" width="146" height="46" rx="4" fill="#fdf5e6" stroke="#8a5a12" stroke-width="1.5"/>
+  <text x="439" y="226" text-anchor="middle" font-size="9.5" font-weight="700" fill="#8a5a12">marketPriceService</text>
+  <text x="439" y="239" text-anchor="middle" font-size="7.5" fill="#4a5160">observed prices</text>
+  <text x="439" y="250" text-anchor="middle" font-size="7" fill="#767e8d">6 consumers</text>
+
+  <rect x="526" y="208" width="140" height="46" rx="4" fill="#fdf5e6" stroke="#8a5a12" stroke-width="1.5"/>
+  <text x="596" y="226" text-anchor="middle" font-size="9.5" font-weight="700" fill="#8a5a12">routingService</text>
+  <text x="596" y="239" text-anchor="middle" font-size="7.5" fill="#4a5160">distance + detour</text>
+  <text x="596" y="250" text-anchor="middle" font-size="7" fill="#767e8d">5 consumers</text>
+
+  <rect x="206" y="266" width="146" height="30" rx="4" fill="#fff" stroke="#4a5160" stroke-width="1"/>
+  <text x="279" y="285" text-anchor="middle" font-size="8.5" font-weight="700">transportCostService</text>
+
+  <rect x="366" y="266" width="146" height="30" rx="4" fill="#fff" stroke="#4a5160" stroke-width="1"/>
+  <text x="439" y="285" text-anchor="middle" font-size="8.5" font-weight="700">sellTimingService</text>
+
+  <rect x="526" y="266" width="140" height="30" rx="4" fill="#fff" stroke="#4a5160" stroke-width="1"/>
+  <text x="596" y="285" text-anchor="middle" font-size="8.5" font-weight="700">freightRateService</text>
+
+  <!-- foundation -->
+  <rect x="40" y="324" width="152" height="30" rx="4" fill="#f5f6f8" stroke="#767e8d" stroke-width="1"/>
+  <text x="116" y="343" text-anchor="middle" font-size="8.5" font-weight="700" fill="#4a5160">utils/money (paise)</text>
+
+  <rect x="206" y="324" width="146" height="30" rx="4" fill="#f5f6f8" stroke="#767e8d" stroke-width="1"/>
+  <text x="279" y="343" text-anchor="middle" font-size="8.5" font-weight="700" fill="#4a5160">config/db (pg.Pool)</text>
+
+  <rect x="366" y="324" width="146" height="30" rx="4" fill="#f5f6f8" stroke="#767e8d" stroke-width="1"/>
+  <text x="439" y="343" text-anchor="middle" font-size="8.5" font-weight="700" fill="#4a5160">fuelPriceService</text>
+
+  <rect x="526" y="324" width="140" height="30" rx="4" fill="#f5f6f8" stroke="#767e8d" stroke-width="1"/>
+  <text x="596" y="343" text-anchor="middle" font-size="8.5" font-weight="700" fill="#4a5160">weatherService</text>
+
+  <!-- key arrows -->
+  <line x1="220" y1="50" x2="220" y2="78" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="503" y1="50" x2="503" y2="78" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="388" y1="104" x2="322" y2="104" stroke="#1d5c3f" stroke-width="1.4" marker-end="url(#a2)"/>
+  <text x="355" y="99" text-anchor="middle" font-size="6.8" fill="#1d5c3f">reuses</text>
+
+  <line x1="200" y1="128" x2="150" y2="204" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="240" y1="128" x2="268" y2="204" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="280" y1="128" x2="420" y2="204" stroke="#8b93a1" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="310" y1="128" x2="570" y2="204" stroke="#8b93a1" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="440" y1="128" x2="180" y2="204" stroke="#8b93a1" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="470" y1="128" x2="295" y2="204" stroke="#8b93a1" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="560" y1="128" x2="610" y2="204" stroke="#8b93a1" stroke-width="1" marker-end="url(#a2)"/>
+
+  <line x1="116" y1="256" x2="116" y2="320" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="279" y1="256" x2="279" y2="262" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="596" y1="296" x2="596" y2="320" stroke="#8b93a1" stroke-width="1.1" marker-end="url(#a2)"/>
+  <line x1="439" y1="296" x2="439" y2="320" stroke="#8b93a1" stroke-width="1" marker-end="url(#a2)"/>
+</svg>
+<figcaption>
+  Service layering. The four amber boxes are the shared engines — the reason both selling channels are
+  directly comparable. <code>buyerComparisonService</code> reuses <code>marketService</code> wholesale
+  rather than reimplementing mandi costing.
+</figcaption>
+</figure>
+
+<h3>The hub services</h3>
+<p>Measured by inbound dependencies across <span class="fp">backend/src/services/</span>:</p>
+<table class="tight">
+  <tr><th style="width:21%">Service</th><th style="width:6%">Used by</th><th>Consumers, and what they take from it</th></tr>
+  <tr>
+    <td><code>spoilageService</code></td><td><strong>6</strong></td>
+    <td>availability, buyerComparison, market, matching, requirement, sellTiming — crop profiles, shelf life, perishability, risk</td>
+  </tr>
+  <tr>
+    <td><code>marketPriceService</code></td><td><strong>6</strong></td>
+    <td>availability, marketPriceIngest, market, offer, pricePrediction, requirement — observed prices, freshness, date helpers</td>
+  </tr>
+  <tr>
+    <td><code>routingService</code></td><td><strong>5</strong></td>
+    <td>availability, buyerComparison, market, matching, transport — distance, detour factor, coordinate validation</td>
+  </tr>
+  <tr>
+    <td><code>netReturnService</code></td><td><strong>3</strong></td>
+    <td>buyerComparison, market, sellTiming — the expected-money ledger</td>
+  </tr>
+  <tr>
+    <td><code>transportCostService</code></td><td><strong>3</strong></td>
+    <td>buyerComparison, market, transport — freight for a load over a distance</td>
+  </tr>
+  <tr>
+    <td><code>availabilityService</code></td><td><strong>4</strong></td>
+    <td>buyerComparison, matching, offer, (controller) — the four-bucket quantity ledger</td>
+  </tr>
+</table>
+
+<div class="box">
+  <div class="box-t">The single most important interconnection</div>
+  <p style="margin-bottom:0">
+    <code>buyerComparisonService</code> → <code>marketService</code> → <code>netReturnService</code>.
+    A marketplace comparison does not reimplement mandi costing — it <em>calls the mandi engine</em>.
+    That is why <code>/selling-options</code> can rank a private buyer against an APMC mandi honestly:
+    both numbers came out of the same function, with the same spoilage model, the same routing, and the
+    same freight rates. Any change to how money is calculated automatically applies to both channels.
+  </p>
+</div>
+
+<h3>End-to-end: one farmer's path through the system</h3>
+<ol>
+  <li><strong>Register and draw a field</strong> — <code>farms</code> row with a boundary polygon.
+    Coordinates unlock everything downstream.</li>
+  <li><strong>Watch crop vigour</strong> — the NDVI job samples Sentinel-2 for that polygon daily and
+    alerts on a drop.</li>
+  <li><strong>Photograph a suspect leaf</strong> — the CNN classifies it, severity is scored, and the
+    advisory is merged with weather-derived disease risk.</li>
+  <li><strong>Record the harvest</strong> — a crop-availability listing, pre-filled from the saved
+    field so only the kilograms are typed.</li>
+  <li><strong>Ask where to sell</strong> — the mandi pipeline ranks nearby markets by expected money,
+    itemising every deduction, and says whether to sell now or wait.</li>
+  <li><strong>Check the direct channel</strong> — buyers wanting that crop are ranked by money in
+    hand; <code>/selling-options</code> puts them beside the mandis.</li>
+  <li><strong>Negotiate</strong> — private thread, structured offers, counter-offers.</li>
+  <li><strong>Agree</strong> — acceptance transactionally reserves the crop, moving kilograms from
+    <code>available</code> to <code>reserved</code> under a row lock.</li>
+  <li><strong>Arrange transport</strong> — hauliers near the destination from Google Places, costed
+    against the live diesel price.</li>
+</ol>
+<p>
+  Steps 5 and 6 are the same question asked of two channels, answered by one engine. That is the
+  system's thesis in one sentence.
+</p>
+
+<h2 class="page-break">6. Data model — 28 tables</h2>
+<p>
+  Schema files live in <span class="fp">database/schemas/</span> and are <strong>fully
+  idempotent</strong> (every statement <code>IF NOT EXISTS</code>), applied automatically on each boot
+  by <code>config/db.js</code>, in dependency order: <code>market.sql</code> →
+  <code>marketplace.sql</code> → <code>transport_rates.sql</code> → <code>market_providers.sql</code>.
+  A fresh clone therefore works with no manual <code>psql</code> step.
+</p>
+
+<table class="tight">
+  <tr><th style="width:22%">Group</th><th style="width:36%">Tables</th><th>Notes</th></tr>
+  <tr>
+    <td><strong>Identity</strong></td>
+    <td><code>users</code>, <code>user_roles</code></td>
+    <td><code>farmer</code> implicit; <code>buyer</code>/<code>admin</code> granted</td>
+  </tr>
+  <tr>
+    <td><strong>Fields</strong></td>
+    <td><code>farms</code></td>
+    <td>Boundary polygon in JSONB; origin for all geo work</td>
+  </tr>
+  <tr>
+    <td><strong>Crop health</strong></td>
+    <td><code>ndvi</code>, <code>ndvi_history</code>, <code>diseases</code>, <code>spoilage</code></td>
+    <td>Unique index on <code>(field_id, captured_date)</code> stops duplicate NDVI history</td>
+  </tr>
+  <tr>
+    <td><strong>Market data</strong></td>
+    <td><code>markets</code>, <code>market_prices</code>, <code>crop_profiles</code>,
+        <code>price_predictions</code>, <code>market_recommendations</code>,
+        <code>price_ingest_runs</code></td>
+    <td>Every price row carries source + demo flag; recommendations stored with engine version</td>
+  </tr>
+  <tr>
+    <td><strong>Provider mapping</strong></td>
+    <td><code>commodity_provider_map</code>, <code>market_provider_map</code></td>
+    <td>Translates data.gov.in vocabulary to internal keys</td>
+  </tr>
+  <tr>
+    <td><strong>Transport</strong></td>
+    <td><code>transport_config</code>, <code>transport_rate_quotes</code>, <code>fuel_prices</code></td>
+    <td>Quotes have a max-age guard; diesel price drives per-km cost</td>
+  </tr>
+  <tr>
+    <td><strong>Marketplace</strong></td>
+    <td><code>buyer_profiles</code>, <code>buyer_requirements</code>,
+        <code>farmer_crop_availability</code>, <code>marketplace_conversations</code>,
+        <code>marketplace_messages</code>, <code>marketplace_offers</code>,
+        <code>marketplace_deals</code>, <code>marketplace_notifications</code>,
+        <code>marketplace_reports</code></td>
+    <td>Where the integrity constraints concentrate — see below</td>
+  </tr>
+  <tr>
+    <td><strong>Advisory</strong></td>
+    <td><code>farm_ai_advice</code></td>
+    <td>Cached plain-language narration</td>
+  </tr>
+</table>
+
+<h4>The constraints that carry the safety guarantees</h4>
+<ul>
+  <li><code>CHECK (available_kg + reserved_kg + sold_kg &lt;= total_harvested_kg)</code> — makes
+    selling the same crop twice <em>structurally</em> impossible, not merely guarded in code.</li>
+  <li><code>UNIQUE (requirement_id, farmer_user_id, buyer_user_id)</code> on conversations — one
+    thread per relationship, enforced by <code>ON CONFLICT</code> rather than a read-then-write race.</li>
+  <li><code>ON DELETE RESTRICT</code> on deals and offers — history cannot be erased from under an
+    agreed deal. This dictates deletion order in the seed script's cleanup: deals, then offers, then
+    requirements.</li>
+  <li><code>is_demo_data</code> flags throughout, so demo rows can be identified and purged regardless
+    of owner.</li>
+</ul>
+
+<h2>7. Complete API surface</h2>
+<p>
+  Mounted in <span class="fp">backend/src/app.js</span>. All marketplace and buyer routes require a
+  real JWT.
+</p>
+
+<table class="tight">
+  <tr><th style="width:26%">Base</th><th>Endpoints</th></tr>
+  <tr><td><code>/api/auth</code></td><td><code>POST /register</code> · <code>POST /login</code></td></tr>
+  <tr><td><code>/api/farms</code></td><td><code>GET /user</code> · <code>GET /:id</code> · <code>POST /</code> · <code>POST /:farmId/ndvi</code> · <code>PUT /:id</code> · <code>DELETE /:id</code></td></tr>
+  <tr><td><code>/api/ndvi</code></td><td><code>POST /calculate</code> · <code>POST /timeseries</code> · <code>POST /advice</code> · <code>GET /history</code> · <code>GET /health/:ndviValue</code></td></tr>
+  <tr><td><code>/api/disease</code><br><code>/api/diseases</code></td><td><code>GET /health</code> · <code>POST /detect</code> · <code>GET /farm/:farmId</code> · <code>POST /combined-advisory</code></td></tr>
+  <tr><td><code>/api/weather</code></td><td><code>GET /health</code> · <code>/current</code> · <code>/forecast</code> · <code>/hourly</code> · <code>/alerts</code> · <code>/disease-risk</code> · <code>/recommendations</code> · <code>/complete</code></td></tr>
+  <tr><td><code>/api/spoilage</code></td><td><code>GET /health</code> · <code>GET /options</code> · <code>POST /assess</code> · <code>POST /predict</code> · <code>GET /history/:farmId</code></td></tr>
+  <tr><td><code>/api/crops</code></td><td><code>GET /</code> · <code>GET /:crop</code> — the 18-crop catalogue; what frontend pickers read</td></tr>
+  <tr>
+    <td><code>/api/market</code><br><code>/api/markets</code><br><span class="fp">same router, both paths</span></td>
+    <td><code>GET /health</code> · <code>POST /ingest</code> · <code>GET /provider/coverage</code> · <code>GET /prices</code> · <code>GET /forecast</code> · <code>GET /price-trend</code> · <code>GET /channels</code> · <code>GET /transport-options</code> · <code>POST /recommend</code> · <code>POST /explain</code> · <code>GET /history/:farmId</code> · <code>GET /</code> · <code>GET /:id</code> · <code>GET /:id/prices</code></td>
+  </tr>
+  <tr><td><code>/api/transport</code></td><td><code>GET /health</code> · <code>GET /search</code> · <code>GET /rate-basis</code> · <code>GET /fuel-price/history</code> · <code>POST /fuel-price</code> · <code>POST /quotes</code> · <code>POST /config/reload</code></td></tr>
+  <tr>
+    <td><code>/api/buyers</code></td>
+    <td><code>GET /me/roles</code> · <code>GET /me</code> · <code>PATCH /me</code> · <code>POST /me/verification</code> · <code>POST /profile</code> · <code>GET /admin/pending</code> · <code>POST /admin/:id/verification</code> · <code>POST /admin/:id/suspension</code> · <code>GET /:id</code> (public projection)</td>
+  </tr>
+  <tr>
+    <td><code>/api/buyer-requirements</code></td>
+    <td><code>POST /</code> · <code>GET /</code> (<code>?mine=true</code>) · <code>GET /:id</code> · <code>PATCH /:id</code> · <code>POST /:id/publish</code> · <code>POST /:id/close</code> · <code>GET /:id/matching-farmers</code></td>
+  </tr>
+  <tr>
+    <td><code>/api/marketplace</code><br><span class="fp">farmer side</span></td>
+    <td><code>GET|POST /farmer/availability</code> · <code>PATCH|DELETE /farmer/availability/:id</code> · <code>GET /farmer/availability/suggestions</code> · <code>GET /farmer/matches</code> · <code>GET /farmer/top-buyers</code> · <code>GET /selling-options</code></td>
+  </tr>
+  <tr>
+    <td><code>/api/marketplace</code><br><span class="fp">buyer side</span></td>
+    <td><code>GET /availability</code> (browse all listings) · <code>GET /buyer/summary</code></td>
+  </tr>
+  <tr>
+    <td><code>/api/marketplace</code><br><span class="fp">negotiation</span></td>
+    <td><code>POST|GET /conversations</code> · <code>GET /conversations/:id/messages</code> · <code>POST /conversations/:id/messages</code> · <code>POST /conversations/:id/read</code> · <code>POST /conversations/:id/block</code> · <code>GET /messages/:id/attachment</code> · <code>POST|GET /offers</code> · <code>GET /offers/:id</code> · <code>POST /offers/:id/{accept,reject,counter,withdraw}</code> · <code>GET /deals</code> · <code>GET /deals/:id</code> · <code>PATCH /deals/:id/status</code> · <code>GET /notifications</code> · <code>POST /notifications/read-all</code> · <code>POST /notifications/:id/read</code> · <code>POST /reports</code></td>
+  </tr>
+  <tr><td><span class="fp">ml-service :8000</span></td><td><code>GET /health</code> · <code>GET /model-info</code> · <code>POST /predict</code> (disease) · <code>POST /predict/price</code> · <code>GET /price-model/info</code></td></tr>
+  <tr><td><span class="fp">satellite :5001</span></td><td><code>GET /health</code> · <code>GET /api/status</code> · <code>POST /api/ndvi/calculate</code> · <code>POST /api/ndvi/timeseries</code> · <code>GET /api/ndvi/health/&lt;v&gt;</code> · <code>POST /api/satellite/{available,preview,mosaic}</code></td></tr>
+</table>
+
+<h2 class="page-break">8. Verified status right now</h2>
+<p>Live health checks and test runs, executed against the running stack on 4 October 2026.</p>
+
+<table class="tight">
+  <tr><th style="width:27%">Check</th><th style="width:17%">Result</th><th>Detail</th></tr>
+  <tr><td>Backend test suite</td><td><span class="s s-ok">289 / 289</span></td><td>13 test files: money, netReturn, ranking, spoilage, sellTiming, routing, transport, transportCost, freightRate, priceProvider, marketValidator, marketplace, recommend integration</td></tr>
+  <tr><td>Frontend production build</td><td><span class="s s-ok">Clean</span></td><td>573 modules transformed, no errors</td></tr>
+  <tr><td><code>/api/health</code></td><td><span class="s s-ok">OK</span></td><td><code>Server is running</code></td></tr>
+  <tr><td><code>/api/market/health</code></td><td><span class="s s-ok">OK</span></td><td>16 markets; real <code>MANDI_API</code> prices for 14 crops; all currently <code>STALE</code> (latest observation 2026-09-24)</td></tr>
+  <tr><td><code>/api/spoilage/health</code></td><td><span class="s s-ok">Operational</span></td><td>18 supported crops</td></tr>
+  <tr><td><code>/api/weather/health</code></td><td><span class="s s-ok">Operational</span></td><td>Open-Meteo, no API key required</td></tr>
+  <tr><td><code>/api/transport/health</code></td><td><span class="s s-ok">OK</span></td><td>Google Places configured and enabled</td></tr>
+  <tr><td><code>/api/disease/health</code></td><td><span class="s s-bad">ML down</span></td><td><code>{backend:"healthy", ml_service:"unavailable"}</code></td></tr>
+  <tr><td>Buyer journey, 15 steps</td><td><span class="s s-ok">All pass</span></td><td>register → browse → add business → distances appear → draft → publish → edit → matches → chat → offer → mark read → profile edit → close</td></tr>
+  <tr><td>Authorization guards</td><td><span class="s s-ok">Hold</span></td><td>Cross-buyer access 403s; over-quantity rejected; self-awarded verification refused; blocked threads reject messages; no coordinate leak in browse payload</td></tr>
+</table>
+
+<div class="box bad">
+  <div class="box-t">Action needed — port 8000 conflict</div>
+  <p style="margin-bottom:0">
+    Disease detection and price forecasting are both unavailable for the same reason, and it is
+    <strong>not a code defect</strong>. Port 8000 is currently held by an unrelated process titled
+    <em>"LLM Gateway"</em> (its <code>/openapi.json</code> advertises <code>/api/chat</code>,
+    <code>/api/skills</code> — nothing to do with AgriChain). The backend's
+    <code>ML_SERVICE_URL</code> points at <code>127.0.0.1:8000</code> and reaches that instead.
+    Either stop the conflicting process and start <code>ml-service</code> there, or run
+    <code>ml-service</code> on another port and update <code>ML_SERVICE_URL</code>. Both modules
+    degrade correctly in the meantime — nothing crashes.
+  </p>
+</div>
+
+<h2>9. What is remaining</h2>
+
+<h3>Gaps in priority order</h3>
+<table class="tight">
+  <tr><th style="width:5%">#</th><th style="width:27%">Item</th><th>Detail and the honest size of the job</th></tr>
+  <tr>
+    <td>1</td><td><strong>Price model trained on demo data</strong></td>
+    <td>Metadata says <code>trained_on_real_data: false</code>. It beats a persistence baseline by
+      0.52% — effectively no signal. Needs retraining on the real <code>MANDI_API</code> history, which
+      is accumulating but currently thin (8–68 observations per crop). This is a data problem before it
+      is a modelling problem.</td>
+  </tr>
+  <tr>
+    <td>2</td><td><strong>No Row Level Security</strong></td>
+    <td>Unenforceable through a pooled superuser. Authorization is service-layer plus DB constraints.
+      The largest architectural gap; migration path documented. Affects all nine modules.</td>
+  </tr>
+  <tr>
+    <td>3</td><td><strong>Mandi price data is stale and thin</strong></td>
+    <td>Real prices exist for 14 crops but the newest is 10 days old and some crops have under 15
+      observations. <code>POST /api/market/ingest</code> and <code>npm run ingest:prices</code> exist;
+      what is missing is a scheduled job running them.</td>
+  </tr>
+  <tr>
+    <td>4</td><td><strong>Satellite service not deployable as-is</strong></td>
+    <td>Needs Google Earth Engine credentials and the Flask process running. NDVI is the one module
+      with no offline fallback.</td>
+  </tr>
+  <tr>
+    <td>5</td><td><strong>No frontend tests</strong></td>
+    <td>Zero component tests; confidence rests on <code>vite build</code> plus backend contract tests.
+      React Testing Library is the clearest addition. Note also that the UI has <em>never been verified
+      in a real browser</em> in recent work — only compiled.</td>
+  </tr>
+  <tr>
+    <td>6</td><td><strong>Chat is polling, not push</strong></td>
+    <td>6 s, visibility-aware. Adequate for a negotiation; not what you would ship for a chat
+      product. SSE or socket.io is the upgrade and <em>the service layer needs no change for it</em>.</td>
+  </tr>
+  <tr>
+    <td>7</td><td><strong>Three dead farmer-side routes</strong></td>
+    <td><code>/marketplace/compare</code> (<span class="fp">MyCropsForSale.jsx:380</span>,
+      <span class="fp">BuyerMarketplace.jsx:801</span>), <code>/marketplace/browse</code>
+      (<span class="fp">BuyerMarketplace.jsx:759</span>), <code>/marketplace/requirements/:id</code>
+      (<span class="fp">BuyerMarketplace.jsx:791</span>). All navigate to routes absent from
+      <code>App.jsx</code>. The buyer-side equivalents were fixed; these need a farmer-facing
+      requirement-detail and a comparison page.</td>
+  </tr>
+  <tr>
+    <td>8</td><td><strong>Dead files</strong></td>
+    <td><code>backend/src/routes/recommendationRoutes.js</code> is empty and not mounted.
+      <code>backend/src/models/User.js</code> and <code>NDVI.js</code> are 0 bytes.
+      <code>frontend/src/services/{api,ndviService,spoilageService,diseaseService}.js</code> are all 0
+      bytes. Safe to delete; they mislead a reader into thinking an ORM layer exists.</td>
+  </tr>
+  <tr>
+    <td>9</td><td><strong>Expiry is lazy, no scheduler</strong></td>
+    <td>Offer and requirement expiry apply on read. Correct, but a nightly job is needed to notify
+      buyers of <em>upcoming</em> expiry — the <code>REQUIREMENT_EXPIRING_SOON</code> event type exists
+      and nothing emits it.</td>
+  </tr>
+  <tr>
+    <td>10</td><td><strong>Mobile untested on device</strong></td>
+    <td>Responsive breakpoints and bottom-sheet dialogs are in place but verified only at narrow
+      viewport widths. The layout is desktop-first (fixed <code>ml-72</code> sidebar).</td>
+  </tr>
+</table>
+
+<h3>Deliberately out of scope</h3>
+<p class="two-col">
+  No payments, escrow or settlement · no driver tracking or vehicle GPS · no SMS or email
+  notifications (in-app only) · no push notifications · buyer contact details intentionally withheld
+  from farmers (change <code>buyerService.toPublic()</code> if that is ever wanted) · no multi-language
+  ML output (the Gemini narration layer handles language, and cannot alter figures).
+</p>
+
+<div class="box">
+  <div class="box-t">Correction to an older document</div>
+  <p style="margin-bottom:0">
+    <span class="fp">docs/Marketplace/README.md §14.5</span> states that the requirement-detail page is
+    "not built" and that those routes "navigate to existing pages". <strong>That is now out of
+    date</strong> — <code>MyRequirements.jsx</code> implements requirement detail with live matching
+    farmers at <code>/buyer/requirements/:requirementId</code>. The buyer-detail page remains unbuilt.
+  </p>
+</div>
+
+<h2>10. Running the stack</h2>
+<pre><code># 1 · PostgreSQL must be running on 5432. Schema applies itself on boot.
+
+# 2 · Backend  (http://localhost:3000)
+cd backend && npm install && npm run dev
+
+# 3 · Frontend (http://localhost:5173)
+cd frontend && npm install && npm run dev
+
+# 4 · ML service (http://localhost:8000) — disease CNN + price model
+cd ml-service && pip install -r requirements.txt
+uvicorn api.app:app --port 8000        # free the port first, see §8
+
+# 5 · Satellite service (http://localhost:5001) — needs Earth Engine creds
+cd satellite-service && pip install -r requirements.txt && python app.py</code></pre>
+
+<h4>Useful scripts</h4>
+<table class="tight">
+  <tr><th style="width:34%">Command</th><th>What it does</th></tr>
+  <tr><td><code>npm run seed:marketplace</code></td><td>Creates the 3-account demo scenario proving the price-vs-distance trade-off. Idempotent — clears prior demo data first. Add <code>-- --clear</code> to remove.</td></tr>
+  <tr><td><code>npm run seed:market</code></td><td>Markets and crop profiles</td></tr>
+  <tr><td><code>npm run seed:demo-prices</code></td><td>Synthetic price history (flagged <code>DEMO_SEED</code>)</td></tr>
+  <tr><td><code>npm run ingest:prices</code></td><td>Pulls real prices from data.gov.in</td></tr>
+  <tr><td><code>npm run map:markets</code></td><td>Maps provider market names to internal ids</td></tr>
+  <tr><td><code>npm test</code></td><td>289 tests. <code>test:unit</code> and <code>test:integration</code> split available.</td></tr>
+</table>
+
+<h4>Demo credentials</h4>
+<p>
+  After <code>npm run seed:marketplace</code> — password <code>demo-only-not-secure</code> for all
+  three:<br>
+  <code>demo-farmer@example.test</code> · <code>demo-buyer-a@example.test</code> (verified processor,
+  135 km, ₹31/kg) · <code>demo-buyer-b@example.test</code> (unverified wholesaler, 16 km, ₹28/kg,
+  collects)
+</p>
+<p>
+  Only <code>ORS_API_KEY</code> is unset in <code>backend/.env</code>, and it is optional — OSRM is the
+  default router.
+</p>
+
+<h2>11. Glossary</h2>
+<table class="tight">
+  <tr><th style="width:24%">Term</th><th>Meaning in this codebase</th></tr>
+  <tr><td><strong>APMC / mandi</strong></td><td>Agricultural Produce Market Committee — the regulated wholesale market channel</td></tr>
+  <tr><td><strong>Expected money</strong></td><td>What the farmer keeps after spoilage, freight and selling costs. The only ranking key.</td></tr>
+  <tr><td><strong>Net realizable return</strong></td><td>Formal name for the same figure; hence <code>netReturnService</code></td></tr>
+  <tr><td><strong>Hamali</strong></td><td>Manual loading/unloading charge at a mandi, levied per quintal</td></tr>
+  <tr><td><strong>Cess</strong></td><td>Statutory market fee, a percentage of realised value</td></tr>
+  <tr><td><strong>Quintal</strong></td><td>100 kg. Indian mandi prices are quoted per quintal — the most common data-entry error in this domain, which is why price fields warn "per kilogram, not per quintal".</td></tr>
+  <tr><td><strong>Modal price</strong></td><td>The most frequently traded price on a given day; what the forecast targets</td></tr>
+  <tr><td><strong>NDVI</strong></td><td>Normalised Difference Vegetation Index — crop vigour from satellite near-infrared and red bands</td></tr>
+  <tr><td><strong>Q10 model</strong></td><td>Respiration roughly doubles per 10 °C above optimum; the spoilage engine's temperature factor</td></tr>
+  <tr><td><strong>Requirement</strong></td><td>A buyer's posted demand: crop, quantity, price, date, delivery terms</td></tr>
+  <tr><td><strong>Availability</strong></td><td>A farmer's posted supply, tracked across four quantity buckets</td></tr>
+  <tr><td><strong>Offer</strong></td><td>A structured proposal from either side. Nothing is agreed until accepted.</td></tr>
+  <tr><td><strong>Deal</strong></td><td>An accepted offer. Reserves crop; has its own fulfilment status lifecycle.</td></tr>
+  <tr><td><code>DEMO_SEED</code></td><td>Source label for synthetic data. Always paired with <code>is_demo_data = TRUE</code>.</td></tr>
+  <tr><td><code>MANDI_API</code></td><td>Source label for real prices ingested from data.gov.in</td></tr>
+  <tr><td><code>RULE_BASED_BASELINE</code></td><td>Provenance label asserting a deterministic rule set, not a fitted model</td></tr>
+  <tr><td><code>STRAIGHT_LINE</code></td><td>Distance is haversine, not a road route. Never presented as the latter.</td></tr>
+</table>
+
+<div class="meta">
+  <strong>AgriChain System Handoff</strong> · compiled 4 October 2026 from the live codebase, the
+  running database and executed HTTP calls. Figures quoted (289 tests, 573 modules, 98.58% model
+  accuracy, 16 markets, 28 tables, 18 crops) were each read from the system rather than from prior
+  documentation. Where this document and an older module README disagree, this one is newer — see the
+  correction note in §9.
+</div>
+
+</body>
+</html>

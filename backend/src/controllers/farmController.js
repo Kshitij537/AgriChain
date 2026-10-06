@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { decodeOptionalToken } = require('../middleware/optionalAuthMiddleware');
 
 const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 
@@ -67,9 +68,18 @@ const normalizeBoundaryCoordinates = (raw) => {
  */
 const getUserFarms = async (req, res) => {
   try {
-    // Get user ID from token (you'll need to add auth middleware)
-    // For now, we'll get it from query params or use a default
-    const userId = req.query.userId || req.user?.id || 1; // Default to user 1 for testing
+    // Identity resolution, in priority order:
+    //   1. a VERIFIED Bearer token  — authoritative, and it must win
+    //   2. req.user, if auth middleware ran
+    //   3. the ?userId query param   — the app's existing unauthenticated path
+    //   4. user 1                    — development default
+    //
+    // The token has to outrank the query param. /api/market/recommend enforces
+    // farm ownership against the token, so if a browser logged in as user 2 asks
+    // here for ?userId=1 it would be shown seven fields it cannot actually use,
+    // and every recommendation for them would fail with 403 FARM_FORBIDDEN.
+    const tokenUserId = decodeOptionalToken(req);
+    const userId = tokenUserId || req.user?.id || req.query.userId || 1;
 
     console.log(`[Farm Controller] Fetching farms for user: ${userId}`);
 

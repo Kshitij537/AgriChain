@@ -17,6 +17,9 @@ MODELS_DIR = API_DIR.parent / "models"
 if str(SRC_DIR) not in sys.path:
     sys.path.append(str(SRC_DIR))
 
+if str(API_DIR) not in sys.path:
+    sys.path.append(str(API_DIR))
+
 from labels import CLASS_NAMES
 from preprocess import preprocess_image, InvalidImageError, UnsupportedImageError
 from predict import (
@@ -69,6 +72,14 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# --- Market price prediction (Phase 3) ---------------------------------------
+# Registered as a separate router so disease detection is untouched. The price
+# model itself is imported lazily inside the handlers, so a missing or
+# untrained price artifact cannot prevent this service from starting.
+from routers.price import router as price_router  # noqa: E402
+
+app.include_router(price_router)
 
 # Pydantic Response Schemas
 class PredictionItem(BaseModel):

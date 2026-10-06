@@ -5,7 +5,16 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed:market": "node src/scripts/seedMarketData.js",
+    "seed:demo-prices": "node src/scripts/seedDemoPrices.js",
+    "test": "node --test tests/*.test.js",
+    "test:unit": "node --test tests/money.test.js tests/transportCost.test.js tests/netReturn.test.js tests/spoilage.test.js tests/ranking.test.js tests/sellTiming.test.js tests/routing.test.js tests/marketValidator.test.js",
+    "test:integration": "node --test tests/recommend.integration.test.js",
+    "test:watch": "node --test --watch tests/*.test.js",
+    "seed:marketplace": "node src/scripts/seedMarketplaceDemo.js",
+    "map:markets": "node src/scripts/mapProviderMarkets.js",
+    "ingest:prices": "node src/scripts/ingestPrices.js"
   },
   "dependencies": {
     "axios": "^1.14.0",

@@ -31,6 +31,11 @@ export const translations = {
       hi: 'रोग',
       mr: 'रोग'
     },
+    buyers: {
+      en: 'Buyers',
+      hi: 'खरीदार',
+      mr: 'खरेदीदार'
+    },
     market: {
       en: 'Market',
       hi: 'बाज़ार',

@@ -1,3 +1,4 @@
+# --- Disease detection (existing) ---
 fastapi
 uvicorn
 tensorflow
@@ -5,3 +6,12 @@ numpy
 pillow
 python-multipart
 imagehash
+
+# --- Market price prediction (Phase 3) ---
+pandas
+scikit-learn
+xgboost
+joblib
+psycopg2-binary
+python-dotenv
+pydantic

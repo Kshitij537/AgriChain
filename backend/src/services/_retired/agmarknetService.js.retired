@@ -1,0 +1,306 @@
+/**
+ * AGMARKNET ingestion service.
+ *
+ * Pulls daily mandi price observations from the Government of India Open
+ * Government Data platform (data.gov.in) and stores them in market_prices with
+ * source = 'AGMARKNET'.
+ *
+ * DATA PROVENANCE RULE
+ * --------------------
+ * Only rows actually returned by data.gov.in are written with source
+ * 'AGMARKNET'. This service never synthesises, interpolates or back-fills a
+ * price. If the API is unavailable it ingests nothing and says so.
+ *
+ * CONFIGURATION
+ * -------------
+ *   AGMARKNET_API_KEY      - data.gov.in API key (required; get one free at
+ *                            https://data.gov.in/ after registering)
+ *   AGMARKNET_RESOURCE_ID  - dataset resource id (defaults to the daily
+ *                            commodity price resource)
+ *   AGMARKNET_BASE_URL     - override for testing
+ *
+ * HISTORICAL DEPTH CAVEAT
+ * -----------------------
+ * The public daily-price resource exposes CURRENT arrivals, not a deep
+ * historical archive. Lag/rolling features for the price model are therefore
+ * built by accumulating these daily snapshots over time. Until enough days have
+ * accumulated the price model will correctly refuse to train rather than fit
+ * noise - see ml-service training documentation.
+ */
+
+const axios = require('axios');
+const { query } = require('../config/db');
+
+const DEFAULT_RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
+const DEFAULT_BASE_URL = 'https://api.data.gov.in/resource';
+const REQUEST_TIMEOUT_MS = 20000;
+const MAX_RECORDS_PER_CALL = 1000;
+
+/**
+ * Commodity names as AGMARKNET spells them, mapped to our crop_profiles keys.
+ * Several of our crops appear under more than one AGMARKNET commodity name.
+ */
+const COMMODITY_TO_CROP = {
+  tomato: 'tomato',
+  onion: 'onion',
+  potato: 'potato',
+  'green chilli': 'chilli',
+  'chilli red': 'chilli',
+  chilli: 'chilli',
+  spinach: 'spinach',
+  'bhindi(ladies finger)': 'okra',
+  bhindi: 'okra',
+  cabbage: 'cabbage',
+  cauliflower: 'cauliflower',
+  brinjal: 'brinjal',
+  banana: 'banana',
+  mango: 'mango',
+  grapes: 'grapes',
+  orange: 'orange',
+  wheat: 'wheat',
+  paddy: 'rice',
+  'paddy(dhan)(common)': 'rice',
+  soyabean: 'soybean',
+  soybean: 'soybean',
+  cotton: 'cotton',
+  'kapas': 'cotton'
+};
+
+const isConfigured = () => Boolean(process.env.AGMARKNET_API_KEY);
+
+/**
+ * Parses AGMARKNET's DD/MM/YYYY arrival_date into an ISO date string.
+ * @param {string} value
+ * @returns {string|null} YYYY-MM-DD, or null when unparseable
+ */
+const parseArrivalDate = (value) => {
+  if (!value) return null;
+  const match = String(value).trim().match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  // Some responses already use ISO form.
+  const iso = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return iso ? iso[0] : null;
+};
+
+/**
+ * Converts a raw AGMARKNET record into our market_prices shape.
+ * @param {object} record
+ * @returns {object|null} normalised row, or null when unusable
+ */
+const normaliseRecord = (record) => {
+  const commodity = String(record.commodity || '').trim().toLowerCase();
+  const crop = COMMODITY_TO_CROP[commodity];
+  if (!crop) return null;
+
+  const observationDate = parseArrivalDate(record.arrival_date);
+  if (!observationDate) return null;
+
+  const modalPrice = Number(record.modal_price);
+  if (!Number.isFinite(modalPrice) || modalPrice <= 0) return null;
+
+  const minPrice = Number(record.min_price);
+  const maxPrice = Number(record.max_price);
+
+  return {
+    crop,
+    variety: String(record.variety || 'Other').trim() || 'Other',
+    observationDate,
+    minPrice: Number.isFinite(minPrice) && minPrice > 0 ? minPrice : null,
+    maxPrice: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : null,
+    modalPrice,
+    agmarknetMarket: String(record.market || '').trim(),
+    agmarknetDistrict: String(record.district || '').trim()
+  };
+};
+
+/**
+ * Fetches one page of records from data.gov.in.
+ * @param {object} params - { state, limit, offset }
+ * @returns {Promise<Array>} raw records
+ */
+const fetchPage = async ({ state = 'Maharashtra', limit = MAX_RECORDS_PER_CALL, offset = 0 } = {}) => {
+  const apiKey = process.env.AGMARKNET_API_KEY;
+  if (!apiKey) {
+    const err = new Error('AGMARKNET_API_KEY is not configured');
+    err.code = 'AGMARKNET_NOT_CONFIGURED';
+    throw err;
+  }
+
+  const resourceId = process.env.AGMARKNET_RESOURCE_ID || DEFAULT_RESOURCE_ID;
+  const baseUrl = process.env.AGMARKNET_BASE_URL || DEFAULT_BASE_URL;
+  const url = `${baseUrl}/${resourceId}`;
+
+  const response = await axios.get(url, {
+    params: {
+      'api-key': apiKey,
+      format: 'json',
+      limit,
+      offset,
+      'filters[state]': state
+    },
+    timeout: REQUEST_TIMEOUT_MS
+  });
+
+  const records = response.data && Array.isArray(response.data.records)
+    ? response.data.records
+    : [];
+
+  return records;
+};
+
+/**
+ * Builds a lookup from AGMARKNET market naming to our market rows.
+ * @returns {Promise<Map<string, object>>} keyed by "district|market", lowercased
+ */
+const loadMarketLookup = async () => {
+  const result = await query(
+    `SELECT id, market_code, name, agmarknet_market, agmarknet_district
+     FROM markets WHERE active = TRUE`
+  );
+
+  const lookup = new Map();
+  for (const row of result.rows) {
+    const marketName = (row.agmarknet_market || row.name || '').trim().toLowerCase();
+    const districtName = (row.agmarknet_district || '').trim().toLowerCase();
+    if (marketName) {
+      lookup.set(`${districtName}|${marketName}`, row);
+      // Fall back to market name alone when districts disagree in the feed.
+      if (!lookup.has(marketName)) lookup.set(marketName, row);
+    }
+  }
+  return lookup;
+};
+
+/**
+ * Persists normalised observations, replacing same-day values on re-run.
+ * @param {Array} rows
+ * @returns {Promise<number>} rows written
+ */
+const persistObservations = async (rows) => {
+  let written = 0;
+  for (const row of rows) {
+    await query(
+      `INSERT INTO market_prices
+         (market_id, crop, variety, observation_date, min_price, max_price,
+          modal_price, arrival_quantity, price_unit, source, fetched_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'INR_PER_QUINTAL', 'AGMARKNET', CURRENT_TIMESTAMP)
+       ON CONFLICT (market_id, crop, variety, observation_date, source) DO UPDATE SET
+         min_price = EXCLUDED.min_price,
+         max_price = EXCLUDED.max_price,
+         modal_price = EXCLUDED.modal_price,
+         arrival_quantity = EXCLUDED.arrival_quantity,
+         fetched_at = CURRENT_TIMESTAMP`,
+      [
+        row.marketId,
+        row.crop,
+        row.variety,
+        row.observationDate,
+        row.minPrice,
+        row.maxPrice,
+        row.modalPrice,
+        row.arrivalQuantity ?? null
+      ]
+    );
+    written += 1;
+  }
+  return written;
+};
+
+/**
+ * Runs a full ingestion pass for a state.
+ *
+ * Never throws on API failure - returns a structured outcome so a scheduled job
+ * or an API caller can report the failure without crashing.
+ *
+ * @param {object} [options] - { state, maxPages }
+ * @returns {Promise<object>} ingestion summary
+ */
+const ingestDailyPrices = async ({ state = 'Maharashtra', maxPages = 5 } = {}) => {
+  const startedAt = new Date().toISOString();
+
+  if (!isConfigured()) {
+    console.warn('[AGMARKNET] Skipped: AGMARKNET_API_KEY is not set in .env');
+    return {
+      available: false,
+      reason: 'AGMARKNET_NOT_CONFIGURED',
+      message: 'Set AGMARKNET_API_KEY in backend/.env to ingest real mandi prices.',
+      startedAt,
+      recordsFetched: 0,
+      recordsWritten: 0
+    };
+  }
+
+  const lookup = await loadMarketLookup();
+  let fetched = 0;
+  let matched = [];
+  const unmatchedMarkets = new Set();
+
+  try {
+    for (let page = 0; page < maxPages; page += 1) {
+      const records = await fetchPage({
+        state,
+        limit: MAX_RECORDS_PER_CALL,
+        offset: page * MAX_RECORDS_PER_CALL
+      });
+      if (!records.length) break;
+      fetched += records.length;
+
+      for (const record of records) {
+        const normalised = normaliseRecord(record);
+        if (!normalised) continue;
+
+        const district = normalised.agmarknetDistrict.toLowerCase();
+        const market = normalised.agmarknetMarket.toLowerCase();
+        const row = lookup.get(`${district}|${market}`) || lookup.get(market);
+
+        if (!row) {
+          if (market) unmatchedMarkets.add(`${normalised.agmarknetDistrict}/${normalised.agmarknetMarket}`);
+          continue;
+        }
+        matched.push({ ...normalised, marketId: row.id });
+      }
+
+      if (records.length < MAX_RECORDS_PER_CALL) break;
+    }
+  } catch (error) {
+    console.error(`[AGMARKNET] Fetch failed: ${error.message}`);
+    return {
+      available: false,
+      reason: error.code === 'AGMARKNET_NOT_CONFIGURED' ? error.code : 'AGMARKNET_FETCH_FAILED',
+      message: error.message,
+      startedAt,
+      recordsFetched: fetched,
+      recordsWritten: 0
+    };
+  }
+
+  const written = await persistObservations(matched);
+
+  console.log(
+    `[AGMARKNET] Ingested ${written} observations from ${fetched} records ` +
+    `(${unmatchedMarkets.size} unmapped markets skipped)`
+  );
+
+  return {
+    available: true,
+    source: 'AGMARKNET',
+    startedAt,
+    completedAt: new Date().toISOString(),
+    state,
+    recordsFetched: fetched,
+    recordsMatched: matched.length,
+    recordsWritten: written,
+    unmappedMarkets: Array.from(unmatchedMarkets).slice(0, 25)
+  };
+};
+
+module.exports = {
+  ingestDailyPrices,
+  isConfigured,
+  normaliseRecord,
+  parseArrivalDate,
+  COMMODITY_TO_CROP
+};

@@ -17,7 +17,7 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -47,7 +47,32 @@ app.use('/api/disease', require('./routes/diseaseRoutes'));
 app.use('/api/diseases', require('./routes/diseaseRoutes'));
 app.use('/api/weather', require('./routes/weatherRoutes'));
 app.use('/api/spoilage', require('./routes/spoilageRoutes'));
-// Note: marketRoutes and recommendationRoutes are not yet implemented
+
+// Market intelligence.
+//
+// The same router is mounted at both paths on purpose:
+//   /api/market/*   singular, for actions and cross-market queries
+//                   (recommend, prices, forecast, channels, health)
+//   /api/markets/*  plural, for REST collection access to market master data
+//                   (list, one market, that market's prices)
+// One router keeps the handlers in one place; see routes/marketRoutes.js.
+const marketRoutes = require('./routes/marketRoutes');
+app.use('/api/market', marketRoutes);
+app.use('/api/markets', marketRoutes);
+
+// Crop perishability profiles used by the spoilage and market engines
+app.use('/api/crops', require('./routes/cropRoutes'));
+
+// Transporter discovery near a recommended mandi (Google Places API, called
+// server-side only so the API key never reaches the browser)
+app.use('/api/transport', require('./routes/transportRoutes'));
+
+// Buyer Marketplace: a second selling channel alongside the APMC mandi.
+// Every route here requires a real JWT (not optionalAuth) because the module
+// holds private business-to-business conversations and negotiated prices.
+app.use('/api/buyers', require('./routes/buyerRoutes'));
+app.use('/api/buyer-requirements', require('./routes/requirementRoutes'));
+app.use('/api/marketplace', require('./routes/marketplaceRoutes'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

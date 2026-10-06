@@ -65,9 +65,14 @@ const Login = () => {
 
       setSuccess('Login successful! Redirecting...');
       
-      // Redirect to dashboard after 1 second
+      // Redirect based on user role
       setTimeout(() => {
-        navigate('/dashboard');
+        // If user has buyer role (and not just implicit farmer), go to buyer dashboard
+        if (data.user.roles && data.user.roles.includes('buyer')) {
+          navigate('/buyer');
+        } else {
+          navigate('/dashboard');
+        }
       }, 1000);
 
     } catch (err) {

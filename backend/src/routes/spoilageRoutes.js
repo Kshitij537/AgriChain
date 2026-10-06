@@ -16,9 +16,15 @@ router.get('/health', spoilageController.healthCheck);
 // GET /api/spoilage/options
 router.get('/options', spoilageController.getOptions);
 
-// Assess spoilage risk for a harvested batch
+// Assess spoilage risk for a harvested batch (full assessment)
 // POST /api/spoilage/assess
 router.post('/assess', spoilageController.assessRisk);
+
+// Compact spoilage prediction: risk, loss percent/kg/value and the top factors.
+// Same RULE_BASED_BASELINE engine as /assess, projected to the fields the market
+// engine and API consumers need.
+// POST /api/spoilage/predict
+router.post('/predict', spoilageController.predictSpoilage);
 
 // Assessment history for a farm (ownership enforced)
 // GET /api/spoilage/history/:farmId

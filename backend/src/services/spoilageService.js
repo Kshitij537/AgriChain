@@ -19,7 +19,62 @@
  * approximation for post-harvest deterioration.
  */
 
+const money = require('../utils/money');
+
 const REFERENCE_Q10 = 2.0;
+
+/**
+ * ENGINE PROVENANCE - read this before describing this module anywhere.
+ *
+ * Every assessment this service returns is produced by the deterministic rule
+ * set documented above. No model is fitted, no dataset is learned from, and no
+ * statistical uncertainty is available. It is labelled RULE_BASED_BASELINE so
+ * that an API response, a log line or a report can never imply otherwise.
+ *
+ * Why a baseline rather than a model: there is no labelled Indian post-harvest
+ * spoilage dataset in this repository - no records of "this load travelled N
+ * hours at T degrees and arrived X% spoiled". Fabricating one and fitting a
+ * regressor to it would manufacture an accuracy figure that means nothing. The
+ * physics-based rule set is honest about what it is and is auditable by an
+ * agronomist, which a model trained on invented labels would not be.
+ *
+ * Replacing this with a real model: keep assessSpoilageRisk and
+ * estimateSpoilageLossForMarket as the interface, swap the internals, and bump
+ * SPOILAGE_MODEL_VERSION to e.g. 'spoilage_xgb_v1'. Callers need no change, and
+ * every stored assessment stays traceable to the engine that produced it.
+ */
+const SPOILAGE_ENGINE = 'RULE_BASED_BASELINE';
+const SPOILAGE_MODEL_VERSION = 'spoilage_baseline_v1';
+
+/**
+ * Fraction of a consignment that is unsellable once it has used up its entire
+ * effective shelf life. See the derivation comment in assessSpoilageRisk.
+ */
+const LOSS_AT_FULL_EXPOSURE = 0.45;
+
+/**
+ * Curvature of the exposure -> loss relationship.
+ *
+ * Spoilage is not linear in elapsed life. Produce halfway through its shelf life
+ * is not half spoiled; it is nearly intact, and then deteriorates sharply as the
+ * window closes. An exponent of 2.2 reproduces that shape:
+ *
+ *   20% of shelf life used  ->  ~1.3% of the load lost
+ *   45%                     ->  ~7.8%
+ *   75%                     ->  ~24%
+ *   100%                    ->  45%   (LOSS_AT_FULL_EXPOSURE)
+ *
+ * A linear conversion instead reports ~34% loss on a day-old tomato load
+ * travelling 35 km, which no farmer would recognise as their experience.
+ */
+const LOSS_CURVE_EXPONENT = 2.2;
+
+/**
+ * Ceiling on estimated loss. Produce held well past its window is mostly refuse
+ * but rarely literally worthless, and claiming 100% would overstate what this
+ * rule set can know.
+ */
+const MAX_LOSS_FRACTION = 0.90;
 
 /**
  * Per-crop post-harvest characteristics.
@@ -86,6 +141,22 @@ const resolveCropKey = (cropType) => {
   }
   if (normalized.includes('paddy')) return 'rice';
   if (normalized.includes('leafy') || normalized.includes('methi') || normalized.includes('coriander')) return 'spinach';
+
+  // Regional and dataset spellings that the substring pass above cannot catch,
+  // because the profile key is not contained in them. 'soyabean' is how both
+  // the provider and the existing farm records spell it (see
+  // the provider commodity map in scripts/mapProviderMarkets.js, which maps it
+  // the same way).
+  if (normalized.includes('soya')) return 'soybean';
+  if (normalized.includes('kapas')) return 'cotton';
+  if (normalized.includes('bhindi') || normalized.includes('ladies finger')) return 'okra';
+  if (normalized.includes('mirch') || normalized.includes('mirchi')) return 'chilli';
+  if (normalized.includes('kanda')) return 'onion';
+  if (normalized.includes('batata') || normalized.includes('aloo')) return 'potato';
+  if (normalized.includes('tamatar')) return 'tomato';
+  if (normalized.includes('gehu') || normalized.includes('gehun')) return 'wheat';
+  if (normalized.includes('palak')) return 'spinach';
+
   return null;
 };
 
@@ -531,7 +602,32 @@ const assessSpoilageRisk = (input = {}) => {
 
   const safeDays = computeSafeDays(effectiveShelfLifeDays, exposureDays);
   const quantityKg = Number(input.quantityKg) || 0;
-  const estimatedLossKg = quantityKg > 0 ? Math.round(quantityKg * (riskScore / 100) * 0.45) : 0;
+
+  /**
+   * Exposure -> physical loss.
+   *
+   * exposureRatio is how much of the produce's usable life has been consumed by
+   * the time it reaches the buyer. Reaching the end of that window does not mean
+   * the whole load is refuse: a consignment arriving at the end of its window
+   * typically has 40-50% downgraded or unsellable and the rest still saleable at
+   * a lower grade, which is what LOSS_AT_FULL_EXPOSURE encodes. The exponent
+   * gives the curve its real convex shape (see LOSS_CURVE_EXPONENT).
+   *
+   * Unlike riskScore, the ratio here is deliberately NOT clamped at 1.0: produce
+   * held two shelf lives past harvest really is worse off than produce at exactly
+   * its limit, and the ranking should be able to see that. MAX_LOSS_FRACTION caps
+   * the result.
+   *
+   * These are documented rules of thumb inside a rule-based baseline, not
+   * measured coefficients. They are the first thing a labelled post-harvest
+   * dataset should replace.
+   */
+  const exposureRatio = exposureDays / effectiveShelfLifeDays;
+  const lossFraction = Math.min(
+    MAX_LOSS_FRACTION,
+    LOSS_AT_FULL_EXPOSURE * Math.pow(Math.max(0, exposureRatio), LOSS_CURVE_EXPONENT)
+  );
+  const estimatedLossKg = quantityKg > 0 ? Math.round(quantityKg * lossFraction) : 0;
 
   return {
     risk: {
@@ -580,32 +676,83 @@ const assessSpoilageRisk = (input = {}) => {
     },
     loss: {
       estimatedLossKg,
-      estimatedLossPercent: quantityKg > 0 ? Math.round((estimatedLossKg / quantityKg) * 100) : 0
+      estimatedLossPercent: quantityKg > 0 ? Math.round((estimatedLossKg / quantityKg) * 100) : 0,
+      // Unrounded companion to estimatedLossPercent. The integer field above is
+      // left byte-for-byte compatible for the existing SpoilageRisk page; money
+      // arithmetic must use this one, because rounding 8.5% up to 9% on a 500 kg
+      // tomato load shifts the answer by about ₹70 - enough to flip a ranking.
+      estimatedLossPercentPrecise: round1(lossFraction * 100)
     },
     factors,
     recommendations,
     timeline: buildTimeline({ effectiveShelfLifeDays, exposureDays }),
+
+    // --- Provenance ----------------------------------------------------------
+    // This engine is a deterministic agronomic rule set: a Q10 respiration model
+    // plus storage, humidity and transit factors. It is NOT a trained model, and
+    // nothing in this system may present it as an ML prediction. The interface is
+    // shaped so a trained regressor can replace the internals later while callers
+    // keep reading the same fields - see docs/Market/README.md.
+    engine: SPOILAGE_ENGINE,
+    modelVersion: SPOILAGE_MODEL_VERSION,
+    isMachineLearning: false,
     assessedAt: new Date().toISOString()
   };
 };
 
 /**
- * Expected spoilage loss for a candidate market. Used later by the market engine
- * to compare net return rather than headline price.
+ * Expected spoilage loss for one candidate market, in produce and in rupees.
+ *
+ * This is the market engine's entry point into the spoilage baseline. It answers
+ * "if this load travels to THIS mandi, how much of it arrives unsellable, and
+ * what is that worth?" - the deduction that lets a nearer, cheaper mandi beat a
+ * distant, higher-priced one.
+ *
+ * The lost value is priced at the destination mandi's own rate, because the
+ * spoiled fraction is produce that would otherwise have sold there.
+ *
+ * @param {object} baseInput - shared assessSpoilageRisk input: cropType,
+ *   quantityKg, harvestDate, storageType, temperatureC, humidity
+ * @param {object} market - { name, distanceKm, travelHours, pricePerQuintal }
+ * @returns {object} loss estimate with provenance attached
  */
-const estimateSpoilageLossForMarket = (baseInput, market) => {
+const estimateSpoilageLossForMarket = (baseInput, market = {}) => {
   const assessment = assessSpoilageRisk({
     ...baseInput,
     distanceKm: market.distanceKm,
     travelHours: market.travelHours,
     destination: market.name
   });
+
+  const quantityKg = Number(baseInput.quantityKg) || 0;
+  const lossPercent = assessment.loss.estimatedLossPercentPrecise;
+  const lossKg = Math.round(((quantityKg * lossPercent) / 100) * 10) / 10;
+
+  // Price the loss only when the caller supplied a rate; never invent one.
+  const pricePerQuintal = Number(market.pricePerQuintal);
+  let lossValue = null;
+  if (Number.isFinite(pricePerQuintal) && pricePerQuintal > 0) {
+    const perKgPaise = money.perQuintalToPerKg(money.toPaise(pricePerQuintal));
+    lossValue = money.toWholeRupees(money.multiply(perKgPaise, lossKg));
+  }
+
   return {
-    market: market.name,
+    market: market.name || null,
     riskScore: assessment.risk.score,
     riskLevel: assessment.risk.level,
-    estimatedLossKg: assessment.loss.estimatedLossKg,
-    estimatedLossPercent: assessment.loss.estimatedLossPercent
+    estimatedLossPercent: lossPercent,
+    estimatedLossKg: lossKg,
+    estimatedLossValue: lossValue,
+    saleableQuantityKg: Math.round((quantityKg - lossKg) * 10) / 10,
+    safeDays: assessment.shelfLife.safeDays,
+    effectiveShelfLifeDays: assessment.shelfLife.effectiveDays,
+    travelHours: assessment.transport.travelHours,
+    // Top three drivers; buildRiskFactors already sorts strongest-first.
+    factors: assessment.factors.slice(0, 3).map((f) => f.label),
+    factorDetails: assessment.factors.slice(0, 3),
+    engine: SPOILAGE_ENGINE,
+    modelVersion: SPOILAGE_MODEL_VERSION,
+    isMachineLearning: false
   };
 };
 
@@ -632,6 +779,10 @@ module.exports = {
   getCropProfile,
   getStorageType,
   estimateTravelHours,
+  resolveCropKey,
   CROP_PROFILES,
-  STORAGE_TYPES
+  STORAGE_TYPES,
+  SPOILAGE_ENGINE,
+  SPOILAGE_MODEL_VERSION,
+  LOSS_AT_FULL_EXPOSURE
 };
